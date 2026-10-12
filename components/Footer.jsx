@@ -4,9 +4,6 @@ import { contact, nav, waLink } from "./data";
 export default function Footer() {
   return (
     <footer id="contact-footer" className="footer">
-      <div className="footer-big">
-        <img src="/images/logo.png" alt="CasaSaga" />
-      </div>
       <div className="footer-grid">
         <div>
           <h4>The house</h4>

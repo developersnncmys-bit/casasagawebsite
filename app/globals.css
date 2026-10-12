@@ -269,8 +269,6 @@ h2 em { color: var(--gold); }
 
 /* footer */
 .footer { padding: 14vh 6vw 3rem; background: var(--wine); position: relative; overflow: hidden; }
-.footer-big { margin-bottom: 8vh; }
-.footer-big img { width: 100%; max-width: 1400px; height: auto; display: block; margin: 0 auto; }
 .footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1.2fr 1fr; gap: 3rem; padding-top: 3rem; border-top: 1px solid var(--line); }
 .footer h4 { font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.2rem; font-weight: 600; }
 .footer p, .footer address { color: var(--muted); font-style: normal; display: flex; flex-direction: column; }
