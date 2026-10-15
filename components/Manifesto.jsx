@@ -3,7 +3,7 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 const text =
-  "Tucked away in Banashankari, CasaSaga is a hideaway built for two — where candlelight, quiet luxury and thoughtful details turn a night away into a story you'll keep retelling.";
+  "Tucked away in Banashankari, CasaSaga is a hideaway built for two — where soft light, quiet luxury and thoughtful details turn a night away into a story you'll keep retelling.";
 
 function Word({ children, progress, range }) {
   const opacity = useTransform(progress, range, [0.12, 1]);
@@ -21,7 +21,7 @@ export default function Manifesto() {
   return (
     <section ref={ref} className="manifesto">
       <motion.img src="/images/sakura.jpg" alt="" className="float-img fi-1" style={{ y: imgY1, rotate: rot }} />
-      <motion.img src="/images/amenity-dining.jpg" alt="" className="float-img fi-2" style={{ y: imgY2 }} />
+      <motion.img src="/images/riviera-lounge-1.jpg" alt="" className="float-img fi-2" style={{ y: imgY2 }} />
       <p className="eyebrow">A sanctuary for lovers</p>
       <p className="manifesto-text">
         {list.map((w, i) => (

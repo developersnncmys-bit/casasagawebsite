@@ -2,11 +2,14 @@ import { Suspense } from "react";
 import PageHero from "@/components/PageHero";
 import ContactForm from "@/components/ContactForm";
 import Reveal from "@/components/Reveal";
-import { contact, waLink } from "@/components/data";
+import { waLinkFor } from "@/components/content-helpers";
+import { getContent } from "@/lib/content";
 
 export const metadata = { title: "Contact" };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const { contact } = await getContent();
+  const waLink = waLinkFor(contact);
   return (
     <>
       <PageHero

@@ -12,7 +12,7 @@ export default function GalleryPage() {
         eyebrow="Gallery"
         title="Moments in"
         accent="light"
-        sub="A look inside the suites, the dining, the spa and the little setups we prepare for special evenings."
+        sub="A look inside the suites and the little setups we prepare for birthdays, anniversaries and special evenings."
         img="/images/gallery-hero.jpg"
       />
       <GalleryGrid />

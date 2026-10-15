@@ -83,7 +83,7 @@ export default function Hero() {
           animate={{ opacity: 1 }}
           transition={{ delay: 2.8, duration: 1 }}
         >
-          Four themed suites, private jacuzzis and candlelit evenings — crafted for couples,
+          Four themed suites, private jacuzzis and in-house celebration decor — crafted for couples,
           honeymooners and every anniversary worth celebrating.
         </motion.p>
       </motion.div>

@@ -10,7 +10,7 @@ const wrap = (min, max, v) => {
   return ((((v - min) % r) + r) % r) + min;
 };
 
-function Row({ base, children }) {
+function Row({ base, items, className = "" }) {
   const pos = useMotionValue(0);
   const { scrollY } = useScroll();
   const vel = useSpring(useVelocity(scrollY), { damping: 50, stiffness: 400 });
@@ -28,10 +28,17 @@ function Row({ base, children }) {
   });
 
   return (
-    <div className="marquee-row">
+    <div className={`marquee-row ${className}`}>
       <motion.div className="marquee-inner" style={{ x }}>
         {[0, 1, 2, 3].map((k) => (
-          <span key={k}>{children}</span>
+          <span key={k} className="marquee-group">
+            {items.map((item) => (
+              <span key={item} className="marquee-item">
+                {item}
+                <i className="marquee-sep" />
+              </span>
+            ))}
+          </span>
         ))}
       </motion.div>
     </div>
@@ -41,10 +48,8 @@ function Row({ base, children }) {
 export default function Marquee() {
   return (
     <section className="marquee" aria-hidden>
-      <Row base={-2.5}>Candlelight ✦ Jacuzzis ✦ Rooftop Evenings ✦ Plunge Pool ✦ </Row>
-      <Row base={2.5}>
-        <em>Honeymoons ✦ Anniversaries ✦ Proposals ✦ Getaways ✦ </em>
-      </Row>
+      <Row base={-2} items={["Private Jacuzzis", "Plunge Pool", "Celebration Decor", "Themed Suites"]} />
+      <Row base={2} className="marquee-row--alt" items={["Birthdays", "Anniversaries", "Honeymoons", "Proposals"]} />
     </section>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { stories } from "./data";
+import { useContent } from "./ContentProvider";
 
 function Story({ s, i, progress }) {
   const speeds = [80, -60, 120];
-  const y = useTransform(progress, [0, 1], [speeds[i], -speeds[i]]);
+  const speed = speeds[i % speeds.length];
+  const y = useTransform(progress, [0, 1], [speed, -speed]);
   return (
     <motion.figure
       className="story"
@@ -13,7 +14,7 @@ function Story({ s, i, progress }) {
       initial={{ opacity: 0, filter: "blur(10px)" }}
       whileInView={{ opacity: 1, filter: "blur(0px)" }}
       viewport={{ once: true, amount: 0.4 }}
-      transition={{ duration: 1, delay: i * 0.15 }}
+      transition={{ duration: 1, delay: (i % 3) * 0.15 }}
     >
       <span className="story-mark">&ldquo;</span>
       <blockquote>{s.quote}</blockquote>
@@ -26,6 +27,7 @@ function Story({ s, i, progress }) {
 }
 
 export default function Stories() {
+  const { stories } = useContent();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const heartRotate = useTransform(scrollYProgress, [0, 1], [-30, 30]);
@@ -42,7 +44,7 @@ export default function Stories() {
       </div>
       <div className="stories-grid">
         {stories.map((s, i) => (
-          <Story key={s.names} s={s} i={i} progress={scrollYProgress} />
+          <Story key={s.names + i} s={s} i={i} progress={scrollYProgress} />
         ))}
       </div>
     </section>

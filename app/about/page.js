@@ -3,11 +3,12 @@ import PageHero from "@/components/PageHero";
 import AboutStory from "@/components/AboutStory";
 import Reveal from "@/components/Reveal";
 import Marquee from "@/components/Marquee";
-import { values } from "@/components/data";
+import { getContent } from "@/lib/content";
 
 export const metadata = { title: "About" };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const { values } = await getContent();
   return (
     <>
       <PageHero

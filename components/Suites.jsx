@@ -1,23 +1,36 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import Link from "next/link";
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
-import { formatINR, suites } from "./data";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { formatINR } from "./content-helpers";
+import { useContent } from "./ContentProvider";
 
-function SuiteCard({ s, i, progress }) {
-  // Inner image drifts against the horizontal motion for a depth effect
-  const imgX = useTransform(progress, [0, 1], ["-12%", "12%"]);
+function SuiteCard({ s, i }) {
+  const ref = useRef(null);
+  // Image drifts slightly against the scroll for a depth effect
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const imgY = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
+
   return (
-    <article className="suite" style={{ "--accent": s.accent }} data-hover>
-      <div className="suite-media">
-        <motion.img src={s.img} alt={`${s.name} Suite`} style={{ x: imgX }} />
+    <motion.article
+      ref={ref}
+      className={`suite ${i % 2 ? "flip" : ""}`}
+      style={{ "--accent": s.accent }}
+      initial={{ opacity: 0, y: 60 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+      data-hover
+    >
+      <Link href={`/rooms/${s.id}`} className="suite-media">
+        <motion.img src={s.img} alt={`${s.name} Suite`} style={{ y: imgY }} />
         <span className="suite-index">0{i + 1}</span>
         <span className="suite-price">
           ₹{formatINR(s.price)}<small>/night</small>
         </span>
-      </div>
+      </Link>
       <div className="suite-body">
-        <p className="suite-mood">{s.mood}</p>
+        <p className="suite-mood">{s.tag} · {s.mood}</p>
         <h3>
           {s.name} <em>Suite</em>
         </h3>
@@ -32,55 +45,30 @@ function SuiteCard({ s, i, progress }) {
           <Link href={`/rooms/${s.id}`} className="link-line">View Suite</Link>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
 export default function Suites() {
-  const ref = useRef(null);
-  const trackRef = useRef(null);
-  const [distance, setDistance] = useState(0);
-
-  // How far the track must travel so the last card ends at the right edge
-  useEffect(() => {
-    const measure = () => {
-      const el = trackRef.current;
-      if (el) setDistance(Math.max(0, el.scrollWidth - window.innerWidth));
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const smooth = useSpring(scrollYProgress, { stiffness: 80, damping: 25, mass: 0.4 });
-  const x = useTransform(smooth, (v) => -v * distance);
-  const bigX = useTransform(smooth, [0, 1], ["10%", "-40%"]);
-
+  const { suites } = useContent();
   return (
-    <section id="suites" ref={ref} className="suites">
-      <div className="suites-sticky">
-        <motion.div className="suites-ghost" style={{ x: bigX }}>Sanctuaries</motion.div>
-        <div className="suites-head">
-          <div>
-            <p className="eyebrow">Rooms & Suites</p>
-            <h2>
-              Our <em>sanctuaries</em>
-            </h2>
-          </div>
-          <div className="suites-head-side">
-            <p className="muted">Four suites, four moods — each with its own private water ritual.</p>
-            <Link href="/rooms" className="link-line">All suites</Link>
-          </div>
+    <section id="suites" className="suites">
+      <div className="suites-head">
+        <div>
+          <p className="eyebrow">Rooms & Suites</p>
+          <h2>
+            Our <em>sanctuaries</em>
+          </h2>
         </div>
-        <motion.div ref={trackRef} className="suites-track" style={{ x }}>
-          {suites.map((s, i) => (
-            <SuiteCard key={s.id} s={s} i={i} progress={smooth} />
-          ))}
-        </motion.div>
-        <div className="suites-progress">
-          <motion.span style={{ scaleX: smooth }} />
+        <div className="suites-head-side">
+          <p className="muted">Four suites, four moods — each with its own private water ritual.</p>
+          <Link href="/rooms" className="link-line">All suites</Link>
         </div>
+      </div>
+      <div className="suites-list">
+        {suites.map((s, i) => (
+          <SuiteCard key={s.id} s={s} i={i} />
+        ))}
       </div>
     </section>
   );

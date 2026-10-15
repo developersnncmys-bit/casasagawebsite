@@ -13,7 +13,7 @@ export default function BookingPage() {
           Book your <em>escape</em>
         </h1>
         <p className="muted">
-          Choose a suite and your dates — we&apos;ll confirm availability with you personally on WhatsApp.
+          Four quick steps — dates, suite, any celebration add-ons and your details. We&apos;ll confirm availability with you personally on WhatsApp.
         </p>
       </Reveal>
       <Suspense fallback={null}>

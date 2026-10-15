@@ -10,6 +10,7 @@ export default function SmoothScroll({ children }) {
   useEffect(() => {
     const lenis = new Lenis({ duration: 1.25, smoothWheel: true });
     lenisRef.current = lenis;
+    window.__lenis = lenis; // lets components (e.g. the booking steps) scroll smoothly
     let id;
     const raf = (t) => {
       lenis.raf(t);
@@ -34,6 +35,7 @@ export default function SmoothScroll({ children }) {
       cancelAnimationFrame(id);
       document.removeEventListener("click", onClick);
       lenis.destroy();
+      window.__lenis = undefined;
     };
   }, []);
 

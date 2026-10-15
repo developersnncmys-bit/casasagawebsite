@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import Lightbox from "./Lightbox";
-import { gallery, galleryCategories } from "./data";
+import { useContent } from "./ContentProvider";
 
 function Column({ items, speed, progress, onOpen }) {
   const y = useTransform(progress, [0, 1], [0, speed]);
@@ -31,12 +31,13 @@ function Column({ items, speed, progress, onOpen }) {
 }
 
 export default function GalleryGrid() {
+  const { gallery, galleryCategories } = useContent();
   const [cat, setCat] = useState("All");
   const [index, setIndex] = useState(null);
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
 
-  const items = useMemo(() => (cat === "All" ? gallery : gallery.filter((g) => g.cat === cat)), [cat]);
+  const items = useMemo(() => (cat === "All" ? gallery : gallery.filter((g) => g.cat === cat)), [cat, gallery]);
   const cols = [0, 1, 2].map((c) => items.filter((_, i) => i % 3 === c));
   const speeds = [-80, 60, -140];
 

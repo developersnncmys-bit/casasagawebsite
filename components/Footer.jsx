@@ -1,14 +1,18 @@
 import Link from "next/link";
-import { contact, nav, waLink } from "./data";
+import { nav } from "./data";
+import { waLinkFor } from "./content-helpers";
+import { getContent } from "@/lib/content";
 
-export default function Footer() {
+export default async function Footer() {
+  const { contact } = await getContent();
+  const waLink = waLinkFor(contact);
   return (
     <footer id="contact-footer" className="footer">
       <div className="footer-grid">
         <div>
           <h4>The house</h4>
           <p>
-            A sanctuary for lovers in the heart of Bangalore — candlelit suites,
+            A sanctuary for lovers in the heart of Bangalore — themed suites,
             private water rituals and unhurried evenings for two.
           </p>
           <Link href="/booking" className="btn btn-gold footer-btn">Book your stay</Link>

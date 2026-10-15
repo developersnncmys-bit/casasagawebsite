@@ -4,21 +4,29 @@ import PageHero from "@/components/PageHero";
 import ParallaxImg from "@/components/ParallaxImg";
 import Reveal from "@/components/Reveal";
 import SuiteGallery from "@/components/SuiteGallery";
-import { formatINR, getSuite, policies, suites, waLink } from "@/components/data";
+import { findSuite, formatINR, waLinkFor } from "@/components/content-helpers";
+import { getContent } from "@/lib/content";
 
-export function generateStaticParams() {
+// Suites added later in the admin panel are rendered on first visit
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const { suites } = await getContent();
   return suites.map((s) => ({ slug: s.id }));
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const s = getSuite(slug);
+  const s = findSuite(await getContent(), slug);
   return s ? { title: `${s.name} Suite`, description: s.blurb } : {};
 }
 
 export default async function SuitePage({ params }) {
   const { slug } = await params;
-  const s = getSuite(slug);
+  const content = await getContent();
+  const { suites, policies } = content;
+  const waLink = waLinkFor(content.contact);
+  const s = findSuite(content, slug);
   if (!s) notFound();
   const others = suites.filter((o) => o.id !== s.id);
 

@@ -1,3 +1,8 @@
+// Built-in copy of the website content.
+// The live content is managed in the admin panel and served by the CasaSaga API
+// (see lib/content.js) — this copy is only used when the API cannot be reached,
+// and to seed the database (casasaga-adminpanel/backend: npm run seed).
+
 export const nav = [
   { label: "Suites", href: "/rooms" },
   { label: "Gallery", href: "/gallery" },
@@ -127,34 +132,49 @@ export const suites = [
   },
 ];
 
-export const getSuite = (id) => suites.find((s) => s.id === id);
-export const formatINR = (n) => n.toLocaleString("en-IN");
 
-export const experiences = [
+// In-house decoration add-ons. `price: null` shows "Price on request".
+export const addons = [
   {
+    id: "birthday",
     no: "01",
-    title: "Candlelit Dining",
-    occasion: "Romantic Getaway",
-    text: "Private in-room dinners and rooftop tables set just for two — flickering light, unhurried courses.",
-    img: "/images/amenity-dining.jpg",
+    title: "Birthday Decor",
+    occasion: "Birthday Celebration",
+    text: "Balloons, banners and a little sparkle waiting in your suite — the surprise starts the moment the door opens.",
+    img: "/images/cta.jpg",
+    price: null,
   },
   {
+    id: "anniversary",
     no: "02",
-    title: "Spa & Wellness",
-    occasion: "Just Because",
-    text: "Restorative treatments and rituals designed to help you both slow down and reconnect.",
-    img: "/images/amenity-spa.jpg",
+    title: "Anniversary Decor",
+    occasion: "Anniversary",
+    text: "Rose petals, soft lights and a setup styled around the two of you — another year together, celebrated properly.",
+    img: "/images/tulum-jacuzzi-1.jpg",
+    price: null,
   },
   {
+    id: "honeymoon",
     no: "03",
-    title: "Rooftop Terrace",
-    occasion: "Anniversary",
-    text: "Evening cocktails above Bangalore, with the city lights spread out beneath you.",
-    img: "/images/amenity-rooftop.jpg",
+    title: "Honeymoon Decor",
+    occasion: "Honeymoon",
+    text: "A romantic room makeover for newlyweds, from the bed to the jacuzzi, ready before you check in.",
+    img: "/images/sakura-jacuzzi-1.jpg",
+    price: null,
+  },
+  {
+    id: "proposal",
+    no: "04",
+    title: "Proposal & Surprises",
+    occasion: "Romantic Getaway",
+    text: "Planning to pop the question or surprise someone special? Share the idea and we'll decorate the suite to match.",
+    img: "/images/santorini-pool-2.jpg",
+    price: null,
   },
 ];
 
-// Replace the quotes below with the exact review text from your guests.
+
+// Guest reviews shown on the home page.
 export const stories = [
   {
     names: "Priya & Arjun",
@@ -180,17 +200,14 @@ export const values = [
   { title: "Bespoke moments", text: "Every stay is shaped around you — your occasion, your pace, your preferences." },
 ];
 
-export const galleryCategories = ["All", "Suites", "Dining", "Spa & Wellness", "Spaces", "Romantic Setups"];
+export const galleryCategories = ["All", "Suites", "Spaces", "Romantic Setups"];
 
 export const gallery = [
   { src: "/images/santorini-pool-1.jpg", cat: "Suites", alt: "Santorini Suite plunge pool" },
-  { src: "/images/amenity-dining.jpg", cat: "Dining", alt: "Candlelit dinner for two" },
   { src: "/images/tulum-jacuzzi-1.jpg", cat: "Romantic Setups", alt: "Tulum Suite jacuzzi" },
   { src: "/images/gallery-hero.jpg", cat: "Spaces", alt: "CasaSaga interior" },
   { src: "/images/sakura-jacuzzi-1.jpg", cat: "Suites", alt: "Sakura Suite circular jacuzzi" },
-  { src: "/images/amenity-spa.jpg", cat: "Spa & Wellness", alt: "Spa ritual" },
   { src: "/images/riviera-lounge-1.jpg", cat: "Suites", alt: "Riviera Suite lounge" },
-  { src: "/images/amenity-rooftop.jpg", cat: "Spaces", alt: "Rooftop terrace" },
   { src: "/images/cta.jpg", cat: "Romantic Setups", alt: "Suite prepared for the evening" },
   { src: "/images/tulum-lounge-1.jpg", cat: "Suites", alt: "Tulum Suite lounge" },
   { src: "/images/sakura-wardrobe-1.jpg", cat: "Spaces", alt: "Sakura Suite wardrobe" },
@@ -203,4 +220,3 @@ export const gallery = [
   { src: "/images/riviera-bedroom-1.jpg", cat: "Suites", alt: "Riviera Suite bedroom" },
 ];
 
-export const waLink = (text) => `https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(text)}`;

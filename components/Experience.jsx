@@ -2,7 +2,8 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { experiences } from "./data";
+import { addonPrice } from "./content-helpers";
+import { useContent } from "./ContentProvider";
 
 function Card({ e, i, total, progress }) {
   const start = i / total;
@@ -18,7 +19,8 @@ function Card({ e, i, total, progress }) {
           <span className="exp-no">{e.no}</span>
           <h3>{e.title}</h3>
           <p>{e.text}</p>
-          <Link href={`/contact?occasion=${encodeURIComponent(e.occasion)}&topic=${encodeURIComponent(e.title)}`} className="link-line">Plan this experience</Link>
+          <span className="exp-tag">Add-on · {addonPrice(e)}</span>
+          <Link href={`/booking?addon=${e.id}`} className="link-line">Add to my stay</Link>
         </div>
         <div className="exp-media">
           <motion.img src={e.img} alt={e.title} style={{ scale: imgScale }} />
@@ -29,19 +31,23 @@ function Card({ e, i, total, progress }) {
 }
 
 export default function Experience() {
+  const { addons } = useContent();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   return (
     <section id="experience" className="experience">
       <div className="section-head">
-        <p className="eyebrow">Amenities</p>
+        <p className="eyebrow">Add-ons</p>
         <h2>
-          The CasaSaga <em>experience</em>
+          Make it an <em>occasion</em>
         </h2>
+        <p className="muted exp-intro">
+          Celebrating something? Our team decorates your suite in-house before you arrive — just add it when you book.
+        </p>
       </div>
       <div ref={ref}>
-        {experiences.map((e, i) => (
-          <Card key={e.no} e={e} i={i} total={experiences.length} progress={scrollYProgress} />
+        {addons.map((e, i) => (
+          <Card key={e.id} e={e} i={i} total={addons.length} progress={scrollYProgress} />
         ))}
       </div>
     </section>

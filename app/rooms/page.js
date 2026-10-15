@@ -2,11 +2,13 @@ import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import ParallaxImg from "@/components/ParallaxImg";
 import Reveal from "@/components/Reveal";
-import { formatINR, policies, suites } from "@/components/data";
+import { formatINR } from "@/components/content-helpers";
+import { getContent } from "@/lib/content";
 
 export const metadata = { title: "Suites" };
 
-export default function RoomsPage() {
+export default async function RoomsPage() {
+  const { suites, policies } = await getContent();
   return (
     <>
       <PageHero

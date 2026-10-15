@@ -2,12 +2,14 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { occasions, waLink } from "./data";
+import { useContent } from "./ContentProvider";
+import { sendToBackend } from "./backend";
 
 const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const phoneOk = (v) => !v || /^[+\d][\d\s-]{7,}$/.test(v);
 
 export default function ContactForm() {
+  const { occasions, waLink } = useContent();
   const params = useSearchParams();
   const topic = params.get("topic");
   const initialOccasion = occasions.includes(params.get("occasion")) ? params.get("occasion") : occasions[0];
@@ -42,6 +44,8 @@ export default function ContactForm() {
       `Name: ${form.name}\nEmail: ${form.email}\n` +
       (form.phone ? `Phone: ${form.phone}\n` : "") +
       `Occasion: ${form.occasion}\n\n${form.message}`;
+    // Saved to the admin panel's Enquiries; WhatsApp opens either way
+    sendToBackend("enquiries", form);
     const link = waLink(text);
     setSent(link);
     window.open(link, "_blank", "noopener");
