@@ -127,7 +127,7 @@ h2 em { color: var(--gold); }
 }
 .hero-bg { position: absolute; inset: 0; }
 .hero-bg-inner { position: absolute; inset: -4%; }
-.hero-bg img, .hero-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero-bg img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .hero-veil {
   position: absolute; inset: 0;
   background: radial-gradient(ellipse at 30% 45%, rgba(18,10,13,0.5), rgba(18,10,13,0.88) 75%),

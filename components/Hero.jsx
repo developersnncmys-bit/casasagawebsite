@@ -36,17 +36,8 @@ export default function Hero() {
     <section id="top" ref={ref} className="hero" onMouseMove={onMove}>
       <motion.div className="hero-bg" style={{ y: bgY, scale: bgScale }}>
         <motion.div className="hero-bg-inner" style={{ x: bgX, y: bgYm }}>
-          <video
-            className="hero-video"
-            src="/hero.mp4"
-            poster="/images/hero.jpg"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-hidden="true"
-          />
+          {/* Same banner photo as casasaga.in */}
+          <img src="/images/hero-banner.jpg" alt="" fetchPriority="high" aria-hidden="true" />
         </motion.div>
       </motion.div>
       <div className="hero-veil" />
