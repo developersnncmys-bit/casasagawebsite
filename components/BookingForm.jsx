@@ -16,7 +16,8 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const STEPS = ["Dates & guests", "Choose your suite", "Enhance your stay", "Your details"];
 
 export default function BookingForm() {
-  const { addons, contact, getAddon, getSuite, occasions, suites, waLink } = useContent();
+  const { addons, contact, getAddon, getSuite, occasions, policies, suites } = useContent();
+  const policy = (label) => policies.find((p) => p.label.toLowerCase() === label)?.value;
   const p = useSearchParams();
   const startAddon = getAddon(p.get("addon"));
   const [form, setForm] = useState({
@@ -38,6 +39,7 @@ export default function BookingForm() {
   const [errors, setErrors] = useState({});
   const [done, setDone] = useState(null);
   const [sending, setSending] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [clash, setClash] = useState("");
   const [availKey, setAvailKey] = useState(0);
   const stepRefs = useRef([]);
@@ -129,26 +131,10 @@ export default function BookingForm() {
     if (!suite) return setStep(1);
     if (!validate(3)) return;
 
-    const ref = "CS" + Date.now().toString(36).toUpperCase().slice(-6);
-    const text =
-      `Booking request ${ref} — CasaSaga\n` +
-      `Suite: ${suite.name} Suite\n` +
-      `Check-in: ${fmtDate(form.in)}\nCheck-out: ${fmtDate(form.out)}\n` +
-      `Nights: ${nights} · Guests: ${form.guests}\n` +
-      (chosenAddons.length ? `Add-ons: ${chosenAddons.map((a) => `${a.title} (${addonPrice(a)})`).join(", ")}\n` : "") +
-      `Estimated total: ₹${formatINR(total)}${unpricedAddons ? " + add-ons" : ""} (taxes as applicable)\n\n` +
-      `Name: ${form.name}\nPhone: ${form.phone}\n` +
-      (form.email ? `Email: ${form.email}\n` : "") +
-      `Occasion: ${form.occasion}\n` +
-      (form.notes ? `Requests: ${form.notes}\n` : "");
-    // Open the WhatsApp tab now, while the click still counts as the guest's own action
-    // (browsers block pop-ups opened after waiting on the network)
-    const win = window.open("", "_blank");
-    if (win) win.opener = null;
     setSending(true);
-    // Saved as a pending request in the admin panel, with the same ref as the WhatsApp message
+    setSubmitError("");
+    // The booking is confirmed straight away and appears in the admin panel
     const res = await sendToBackend("bookings", {
-      ref,
       suite: suite.id,
       checkIn: form.in,
       checkOut: form.out,
@@ -163,17 +149,20 @@ export default function BookingForm() {
     setSending(false);
     if (res.status === 409) {
       // Someone else took the last room while the guest was filling in the form
-      win?.close();
       setClash(`Sorry — the ${suite.name} Suite was just booked for these dates. Please choose another suite.`);
       setForm((f) => ({ ...f, suite: "" }));
       setAvailKey((k) => k + 1);
       return goTo(1);
     }
-    const link = waLink(text);
-    setDone({ ref, link });
-    // If the API is down the request still goes to the team on WhatsApp
-    if (win) win.location.href = link;
-    else window.location.href = link;
+    if (!res.ok) {
+      return setSubmitError(
+        res.status === 0
+          ? `We couldn't reach our booking system. Please try again, or call us on ${contact.phone}.`
+          : res.message || `Something went wrong. Please try again, or call us on ${contact.phone}.`,
+      );
+    }
+    setDone(res.data);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const err = (k) => errors[k] && <em className="field-error">{errors[k]}</em>;
@@ -182,17 +171,26 @@ export default function BookingForm() {
     return (
       <motion.div className="form-success booking-done" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
         <span className="success-mark">♥</span>
-        <p className="eyebrow">Request {done.ref}</p>
-        <h3>Almost there, {form.name.split(" ")[0]}!</h3>
-        <p className="muted">
-          Your request for the <strong>{suite.name} Suite</strong>, {fmtDate(form.in)} → {fmtDate(form.out)} ({plural(nights, "night")})
-          {chosenAddons.length ? ` with ${chosenAddons.map((a) => a.title).join(", ")}` : ""}, is ready in WhatsApp. Press
-          send and our team will confirm availability and payment details with you.
+        <p className="eyebrow">Booking {done.ref}</p>
+        <h3>You&apos;re booked, {form.name.split(" ")[0]}!</h3>
+        <p className="muted">Your stay is confirmed. Please keep your booking reference handy for check-in.</p>
+        <dl className="done-summary">
+          <div><dt>Suite</dt><dd>{done.suiteName || suite?.name} Suite</dd></div>
+          <div><dt>Check-in</dt><dd>{fmtDate(done.checkIn)}{policy("check-in") ? ` · ${policy("check-in")}` : ""}</dd></div>
+          <div><dt>Check-out</dt><dd>{fmtDate(done.checkOut)}{policy("check-out") ? ` · ${policy("check-out")}` : ""}</dd></div>
+          <div><dt>Guests</dt><dd>{done.guests} · {plural(done.nights, "night")}</dd></div>
+          {done.addonItems?.length > 0 && (
+            <div><dt>Add-ons</dt><dd>{done.addonItems.map((a) => a.title).join(", ")}</dd></div>
+          )}
+          <div className="done-total"><dt>Total</dt><dd>₹{formatINR(done.total)}</dd></div>
+        </dl>
+        <p className="muted small-note">
+          {done.addonItems?.some((a) => a.price == null) && "Our team will call you to agree the decoration price. "}
+          Questions? Call us on {contact.phone}.
         </p>
         <div className="suite-actions">
-          <a href={done.link} target="_blank" rel="noopener noreferrer" className="btn btn-gold">Open WhatsApp again</a>
-          <a href={`tel:${contact.tel}`} className="link-line">Call {contact.phone}</a>
-          <button type="button" className="link-line" onClick={() => setDone(null)}>Edit request</button>
+          <a href={`tel:${contact.tel}`} className="btn btn-gold">Call {contact.phone}</a>
+          <a href="/" className="link-line">Back to home</a>
         </div>
       </motion.div>
     );
@@ -336,8 +334,9 @@ export default function BookingForm() {
         <span>Special requests</span>
         <textarea rows={4} value={form.notes} onChange={set("notes")} placeholder="Decoration theme or colours, cake message, arrival time…" />
       </label>
+      {submitError && <p className="avail-note warn" role="alert">{submitError}</p>}
       <div className="step-actions">
-        <button type="submit" className="btn btn-gold btn-lg" disabled={sending}>{sending ? "Sending…" : "Request Booking"}</button>
+        <button type="submit" className="btn btn-gold btn-lg" disabled={sending}>{sending ? "Confirming…" : "Confirm Booking"}</button>
       </div>
     </>,
   ];
@@ -432,7 +431,7 @@ export default function BookingForm() {
             <strong>₹{formatINR(total)}</strong>
           </div>
           <p className="muted bp-note">
-            {unpricedAddons && "Decoration prices are confirmed on WhatsApp. "}
+            {unpricedAddons && "Decoration prices are agreed with our team after booking. "}
             Taxes as applicable. Free cancellation up to 48 hours before arrival.
           </p>
         </div>
