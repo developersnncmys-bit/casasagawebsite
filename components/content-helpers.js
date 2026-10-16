@@ -1,4 +1,5 @@
 // Helpers that work on the live content (from the CasaSaga API) on both server and client
+import { refundPolicy as defaultRefundPolicy } from "./data";
 
 export const formatINR = (n) => (Number(n) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 // GST % on an add-on: its own rate, else the add-on default
@@ -58,6 +59,7 @@ export function normalize(c) {
     reels: c.reels || [],
     occasions: c.occasions?.length ? c.occasions : ["Romantic Getaway", "Other"],
     values: c.values || [],
+    refundPolicy: c.refundPolicy?.length ? c.refundPolicy : defaultRefundPolicy,
     galleryCategories: c.galleryCategories?.length ? c.galleryCategories : ["All"],
     pricing: { taxRate: 0, addonTaxRate: 18, convenienceFee: 0, convenienceFeeType: "fixed", ...c.pricing },
     locations: c.locations?.length ? c.locations : [{ id: "banashankari", name: "Banashankari 6th Stage", address: c.contact?.address || [], mapUrl: c.contact?.mapUrl || "" }],

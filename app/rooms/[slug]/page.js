@@ -81,7 +81,18 @@ export default async function SuitePage({ params }) {
               <div className="dl-row"><dt>Per night incl. GST</dt><dd>₹{formatINR(Math.round(s.price * (1 + suiteTax(pricing, s) / 100)))}</dd></div>
             )}
             {policies.slice(0, 3).map((p) => (
-              <div key={p.label} className="dl-row"><dt>{p.label}</dt><dd>{p.value}</dd></div>
+              <div key={p.label} className="dl-row">
+                <dt>{p.label}</dt>
+                <dd>
+                  {p.value}
+                  {/cancel/i.test(p.label) && (
+                    <>
+                      <br />
+                      <Link href="/cancellation-policy" className="link-line">Full policy</Link>
+                    </>
+                  )}
+                </dd>
+              </div>
             ))}
           </dl>
           <Link href={`/booking?suite=${s.id}`} className="btn btn-gold sd-btn">Reserve this suite</Link>

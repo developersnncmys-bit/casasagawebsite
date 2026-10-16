@@ -97,6 +97,7 @@ export default async function RoomsPage({ searchParams }) {
             </Reveal>
           ))}
         </div>
+        <Link href="/cancellation-policy" className="link-line policy-link">Cancellation &amp; refund policy</Link>
       </section>
     </>
   );

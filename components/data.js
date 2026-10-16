@@ -54,9 +54,33 @@ export const reels = [
 export const policies = [
   { label: "Check-in", value: "From 2:00 PM" },
   { label: "Check-out", value: "Until 11:00 AM" },
-  { label: "Cancellation", value: "Free up to 48 hours before arrival" },
+  { label: "Cancellation", value: "Free up to 7 days before check-in" },
   { label: "Pets", value: "Not permitted" },
   { label: "Smoking", value: "All suites are non-smoking" },
+];
+
+// Cancellation & Refund Policy page (managed in the admin panel: Contact & policies)
+export const refundPolicy = [
+  {
+    title: "Free Cancellation",
+    text: "Cancellations made at least 7 days before check-in are eligible for a full refund of the amount paid.",
+  },
+  {
+    title: "Late Cancellation",
+    text: "Cancellations made less than 7 days before check-in may incur a cancellation fee equal to the total booking amount.",
+  },
+  {
+    title: "No-Show Policy",
+    text: "If a guest fails to arrive on the scheduled check-in date without prior cancellation, the booking amount is non-refundable.",
+  },
+  {
+    title: "Refund Processing",
+    text: "Eligible refunds will be processed within 7–10 business days, depending on the payment method and bank processing times.",
+  },
+  {
+    title: "Booking Modifications",
+    text: "Changes to booking dates or room types are subject to availability and may result in additional charges.",
+  },
 ];
 
 export const occasions = [

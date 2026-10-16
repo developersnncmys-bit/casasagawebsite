@@ -1,20 +1,21 @@
-/* Light theme: warm ivory pages, dark text, gold and wine accents */
+/* Dark theme: deep wine-black pages, ivory text, gold accents */
 :root {
-  --bg: #fbf7f1;
-  --bg-2: #f4ece2;
-  --card: #ffffff;
-  --wine: #4a1826;
-  --ink: #2b1a1f;
-  --muted: #7a675f;
-  --gold: #b8892f;
-  --gold-2: #8f6a1f;
-  --line: rgba(184, 137, 47, 0.26);
-  --shadow: 0 1px 2px rgba(43, 26, 31, 0.04), 0 14px 40px rgba(43, 26, 31, 0.07);
-  /* Darker version of each suite's accent colour, readable on the light background */
-  --accent-ink: color-mix(in srgb, var(--accent, var(--gold)) 62%, #2b1a1f);
+  --bg: #120a0d;
+  --bg-2: #1c1015;
+  --card: #170d11;
+  --wine: #3d1420;
+  --ink: #f5ebe2;
+  --muted: #b8a49b;
+  --gold: #d8b56a;
+  --gold-2: #f0d9a4;
+  --line: rgba(216, 181, 106, 0.22);
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+  /* Each suite's accent colour, as is — it reads well on the dark background */
+  --accent-ink: var(--accent, var(--gold));
   --serif: var(--font-serif), Georgia, serif;
   --sans: var(--font-sans), system-ui, sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -111,7 +112,7 @@ h2 em { color: var(--gold); }
   display: flex; align-items: center; justify-content: space-between; gap: 2rem;
   padding: 1.4rem 6vw; transition: background 0.5s, padding 0.5s, backdrop-filter 0.5s;
 }
-.nav-solid { background: rgba(251, 247, 241, 0.88); backdrop-filter: blur(14px); padding-block: 0.9rem; border-bottom: 1px solid var(--line); box-shadow: 0 6px 24px rgba(43, 26, 31, 0.05); }
+.nav-solid { background: rgba(18, 10, 13, 0.72); backdrop-filter: blur(14px); padding-block: 0.9rem; border-bottom: 1px solid var(--line); }
 .nav-links a { color: var(--ink); }
 .nav-logo { display: block; flex-shrink: 0; }
 .nav-logo img { height: 42px; width: auto; transition: height 0.5s var(--ease); }
@@ -176,6 +177,8 @@ h2 em { color: var(--gold); }
 }
 .booking select option { background: var(--bg-2); }
 .booking .btn { border-radius: 0; border: 0; }
+.booking-loc { grid-template-columns: 1.35fr 1fr 1fr 0.9fr auto; max-width: 1080px; }
+.booking-loc select { text-overflow: ellipsis; }
 .booking-msg { grid-column: 1 / -1; padding: 0.8rem 1.4rem; background: rgba(18,10,13,0.85); font-size: 0.85rem; color: var(--gold-2); }
 
 /* manifesto */
@@ -237,7 +240,7 @@ h2 em { color: var(--gold); }
   position: sticky; display: grid; grid-template-columns: 1fr 1fr; height: clamp(320px, 46vh, 420px);
   max-width: 980px; margin: 0 auto;
   background: var(--card); border: 1px solid var(--line);
-  border-radius: 24px; overflow: hidden; transform-origin: top center; box-shadow: 0 -16px 40px rgba(43,26,31,0.08);
+  border-radius: 24px; overflow: hidden; transform-origin: top center; box-shadow: 0 -16px 40px rgba(0,0,0,0.3);
 }
 .exp-text { padding: 2.4rem 2.4rem; display: flex; flex-direction: column; justify-content: center; gap: 0.9rem; }
 .exp-no { font-family: var(--serif); font-size: 2.8rem; line-height: 1; color: transparent; -webkit-text-stroke: 1px var(--gold); }
@@ -302,6 +305,8 @@ h2 em { color: var(--gold); }
   .booking { grid-template-columns: 1fr 1fr; }
   .booking .btn { grid-column: 1 / -1; padding: 1.1rem; }
   .booking label:nth-of-type(3) { grid-column: 1 / -1; }
+  .booking-loc label:nth-of-type(3) { grid-column: auto; }
+  .booking-loc label:nth-of-type(1), .booking-loc label:nth-of-type(4) { grid-column: 1 / -1; }
   .suites-head { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
   .suites-head .muted { text-align: left; }
   .suite, .suite.flip { grid-template-columns: 1fr; }

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { addonPrice, formatINR, priceStay, taxNote } from "./content-helpers";
 import { useContent } from "./ContentProvider";
@@ -406,6 +407,10 @@ export default function BookingForm() {
         <textarea rows={4} value={form.notes} onChange={set("notes")} placeholder="Decoration theme or colours, cake message, arrival time…" />
       </label>
       {submitError && <p className="avail-note warn" role="alert">{submitError}</p>}
+      <p className="muted form-note policy-agree">
+        By confirming, you agree to our{" "}
+        <Link href="/cancellation-policy" target="_blank" className="link-line">cancellation &amp; refund policy</Link>.
+      </p>
       <div className="step-actions">
         <button type="submit" className="btn btn-gold btn-lg" disabled={sending}>{sending ? "Confirming…" : "Confirm Booking"}</button>
       </div>
@@ -524,7 +529,8 @@ export default function BookingForm() {
           <p className="muted bp-note">
             {unpricedAddons && "Decoration prices are agreed with our team after booking, plus GST. "}
             {bill.taxAmount > 0 ? "Includes GST and fees. " : "Taxes as applicable. "}
-            Free cancellation up to 48 hours before arrival.
+            {policy("cancellation") ? `Cancellation: ${policy("cancellation")}. ` : ""}
+            <Link href="/cancellation-policy" target="_blank" className="link-line">Cancellation &amp; refund policy</Link>
           </p>
         </div>
       </aside>

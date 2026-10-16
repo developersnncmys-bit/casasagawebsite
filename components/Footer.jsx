@@ -23,6 +23,7 @@ export default async function Footer() {
               <li key={n.href}><Link href={n.href}>{n.label}</Link></li>
             ))}
             <li><Link href="/booking">Booking</Link></li>
+            <li><Link href="/cancellation-policy">Cancellation &amp; refunds</Link></li>
           </ul>
         </div>
         <div>
