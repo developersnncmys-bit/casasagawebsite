@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { nav } from "./data";
-import { waLinkFor } from "./content-helpers";
 import { getContent } from "@/lib/content";
 
 export default async function Footer() {
   const { contact, locations } = await getContent();
-  const waLink = waLinkFor(contact);
   return (
     <footer id="contact-footer" className="footer">
       <div className="footer-grid">
@@ -48,14 +46,6 @@ export default async function Footer() {
         <div>
           <h4>Talk to us</h4>
           <a className="footer-phone" href={`tel:${contact.tel}`}>{contact.phone}</a>
-          <a
-            className="link-line footer-map"
-            href={waLink("Hi CasaSaga, I'd like to know more about a stay.")}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Chat on WhatsApp
-          </a>
         </div>
       </div>
       <div className="footer-base">

@@ -4,7 +4,7 @@ import PageHero from "@/components/PageHero";
 import ParallaxImg from "@/components/ParallaxImg";
 import Reveal from "@/components/Reveal";
 import SuiteGallery from "@/components/SuiteGallery";
-import { findLocation, findSuite, formatINR, isVideo, suiteTax, taxNote, waLinkFor } from "@/components/content-helpers";
+import { findLocation, findSuite, formatINR, isVideo, suiteTax, taxNote } from "@/components/content-helpers";
 import { getContent } from "@/lib/content";
 
 // Suites added later in the admin panel are rendered on first visit
@@ -25,7 +25,6 @@ export default async function SuitePage({ params }) {
   const { slug } = await params;
   const content = await getContent();
   const { suites, policies, pricing } = content;
-  const waLink = waLinkFor(content.contact);
   const s = findSuite(content, slug);
   if (!s) notFound();
   const others = suites.filter((o) => o.id !== s.id);
@@ -86,14 +85,6 @@ export default async function SuitePage({ params }) {
             ))}
           </dl>
           <Link href={`/booking?suite=${s.id}`} className="btn btn-gold sd-btn">Reserve this suite</Link>
-          <a
-            href={waLink(`Hi CasaSaga, I'm interested in the ${s.name} Suite. Could you share availability?`)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn sd-btn"
-          >
-            Ask on WhatsApp
-          </a>
         </aside>
       </section>
 

@@ -1,13 +1,12 @@
 import PageHero from "@/components/PageHero";
 import Reveal from "@/components/Reveal";
-import { mapEmbed, waLinkFor } from "@/components/content-helpers";
+import { mapEmbed } from "@/components/content-helpers";
 import { getContent } from "@/lib/content";
 
 export const metadata = { title: "Contact" };
 
 export default async function ContactPage() {
   const { contact, locations } = await getContent();
-  const waLink = waLinkFor(contact);
   return (
     <>
       <PageHero
@@ -60,17 +59,6 @@ export default async function ContactPage() {
           <div className="info-block">
             <h4>Call</h4>
             <a href={`tel:${contact.tel}`} className="info-big">{contact.phone}</a>
-          </div>
-          <div className="info-block">
-            <h4>WhatsApp</h4>
-            <a
-              href={waLink("Hi CasaSaga, I'd like to plan a stay.")}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-gold"
-            >
-              Chat with us
-            </a>
           </div>
           <div className="info-block">
             <h4>Arrivals</h4>
