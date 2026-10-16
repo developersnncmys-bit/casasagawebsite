@@ -12,24 +12,27 @@ const round2 = (n) => Math.round(n * 100) / 100;
 
 /**
  * The bill for a stay, worked out the same way as the backend (services/booking.service.js):
- * base fee (rate × nights) + convenience fee with GST at the suite's rate, and each add-on with its own GST.
+ * base fee (rate × nights) with GST at the suite's rate, each add-on with its own GST,
+ * then the convenience fee (online bookings) on that total — not taxed.
  * The backend's figure on the confirmed booking is the one that counts.
  */
 export function priceStay(pricing, suite, nights, addons = []) {
   const p = pricing || {};
   const roomTotal = suite && nights > 0 ? round2(nights * suite.price) : 0;
   const addonTotal = round2(addons.reduce((t, a) => t + (a.price || 0), 0));
-  const convenienceFee = !roomTotal
-    ? 0
-    : round2(p.convenienceFeeType === "percent" ? (roomTotal * (p.convenienceFee || 0)) / 100 : p.convenienceFee || 0);
   const taxRate = suite?.taxRate ?? p.taxRate ?? 0;
-  const stayTaxAmount = round2(((roomTotal + convenienceFee) * taxRate) / 100);
+  const stayTaxAmount = round2((roomTotal * taxRate) / 100);
   const addonTaxAmount = round2(addons.reduce((t, a) => t + ((a.price || 0) * addonTax(p, a)) / 100, 0));
   const addonTaxRates = [...new Set(addons.filter((a) => a.price).map((a) => addonTax(p, a)))];
   const taxAmount = round2(stayTaxAmount + addonTaxAmount);
+  const subtotal = round2(roomTotal + addonTotal + taxAmount);
+  const convenienceFee = !roomTotal
+    ? 0
+    : round2(p.convenienceFeeType === "percent" ? (subtotal * (p.convenienceFee || 0)) / 100 : p.convenienceFee || 0);
+  const feeLabel = p.convenienceFeeType === "percent" ? `Convenience fee (${p.convenienceFee}%)` : "Convenience fee";
   return {
-    roomTotal, addonTotal, convenienceFee, taxRate, stayTaxAmount, addonTaxAmount, addonTaxRates, taxAmount,
-    total: round2(roomTotal + addonTotal + convenienceFee + taxAmount),
+    roomTotal, addonTotal, taxRate, stayTaxAmount, addonTaxAmount, addonTaxRates, taxAmount, subtotal, convenienceFee, feeLabel,
+    total: round2(subtotal + convenienceFee),
   };
 }
 // GST % for a suite: its own rate, else the default
@@ -52,6 +55,7 @@ export function normalize(c) {
     ...c,
     contact: { address: [], ...c.contact },
     policies: c.policies || [],
+    reels: c.reels || [],
     occasions: c.occasions?.length ? c.occasions : ["Romantic Getaway", "Other"],
     values: c.values || [],
     galleryCategories: c.galleryCategories?.length ? c.galleryCategories : ["All"],

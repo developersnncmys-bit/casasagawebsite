@@ -43,6 +43,14 @@ export const locations = [
   },
 ];
 
+// Instagram reels shown on the home page
+export const reels = [
+  "https://www.instagram.com/reel/DN8IoH5DyfE/",
+  "https://www.instagram.com/reel/DQT8cGEkt7e/",
+  "https://www.instagram.com/reel/DN7PRaiiYL-/",
+  "https://www.instagram.com/reel/DbMmBdPM5uR/",
+];
+
 export const policies = [
   { label: "Check-in", value: "From 2:00 PM" },
   { label: "Check-out", value: "Until 11:00 AM" },

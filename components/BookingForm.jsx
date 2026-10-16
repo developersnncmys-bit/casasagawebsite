@@ -204,11 +204,13 @@ export default function BookingForm() {
           )}
           <div><dt>Base fee</dt><dd>₹{formatINR(done.roomTotal)}</dd></div>
           {done.addonTotal > 0 && <div><dt>Add-ons</dt><dd>₹{formatINR(done.addonTotal)}</dd></div>}
-          {done.convenienceFee > 0 && <div><dt>Convenience fee</dt><dd>₹{formatINR(done.convenienceFee)}</dd></div>}
           {done.taxAmount - (done.addonTaxAmount || 0) > 0 && (
             <div><dt>GST on stay ({done.taxRate}%)</dt><dd>₹{formatINR(done.taxAmount - (done.addonTaxAmount || 0))}</dd></div>
           )}
           {done.addonTaxAmount > 0 && <div><dt>GST on add-ons</dt><dd>₹{formatINR(done.addonTaxAmount)}</dd></div>}
+          {done.convenienceFee > 0 && (
+            <div><dt>{pricing.convenienceFeeType === "percent" ? `Convenience fee (${pricing.convenienceFee}%)` : "Convenience fee"}</dt><dd>₹{formatINR(done.convenienceFee)}</dd></div>
+          )}
           <div className="done-total"><dt>Total</dt><dd>₹{formatINR(done.total)}</dd></div>
         </dl>
         <p className="muted small-note">
@@ -322,7 +324,7 @@ export default function BookingForm() {
                 nights > 0 && (
                   <small className="rp-total">
                     ₹{formatINR(priceStay(pricing, s, nights).total)} for {plural(nights, "night")}
-                    {priceStay(pricing, s, nights).taxRate > 0 ? " incl. GST" : ""}
+                    {priceStay(pricing, s, nights).convenienceFee > 0 ? " incl. GST & fees" : priceStay(pricing, s, nights).taxRate > 0 ? " incl. GST" : ""}
                   </small>
                 )
               )}
@@ -496,12 +498,6 @@ export default function BookingForm() {
                 <dd>{a.price ? `₹${formatINR(a.price)}` : "On request"}</dd>
               </div>
             ))}
-            {bill.convenienceFee > 0 && (
-              <div className="dl-row">
-                <dt>Convenience fee</dt>
-                <dd>₹{formatINR(bill.convenienceFee)}</dd>
-              </div>
-            )}
             {bill.taxRate > 0 && bill.roomTotal > 0 && (
               <div className="dl-row">
                 <dt>GST on stay ({bill.taxRate}%)</dt>
@@ -512,6 +508,12 @@ export default function BookingForm() {
               <div className="dl-row">
                 <dt>GST on add-ons ({bill.addonTaxRates.join("/")}%)</dt>
                 <dd>₹{formatINR(bill.addonTaxAmount)}</dd>
+              </div>
+            )}
+            {bill.convenienceFee > 0 && (
+              <div className="dl-row">
+                <dt>{bill.feeLabel}</dt>
+                <dd>₹{formatINR(bill.convenienceFee)}</dd>
               </div>
             )}
           </dl>

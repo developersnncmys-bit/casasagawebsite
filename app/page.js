@@ -4,7 +4,7 @@ import Manifesto from "@/components/Manifesto";
 import Suites from "@/components/Suites";
 import Marquee from "@/components/Marquee";
 import Experience from "@/components/Experience";
-import Stories from "@/components/Stories";
+import Reels from "@/components/Reels";
 import CallToAction from "@/components/CallToAction";
 
 export default function Home() {
@@ -16,7 +16,7 @@ export default function Home() {
       <Suites />
       <Marquee />
       <Experience />
-      <Stories />
+      <Reels />
       <CallToAction />
     </>
   );

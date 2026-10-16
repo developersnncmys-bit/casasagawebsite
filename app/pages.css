@@ -442,3 +442,18 @@ button.link-line { background: none; border: 0; color: var(--ink); font-family: 
 .lb-media { display: grid; place-items: center; max-width: 100%; }
 .lb-media .media-full { max-width: 100%; max-height: 82vh; border-radius: 14px; object-fit: contain; background: #000; }
 .lb-media .media-yt { width: min(1100px, 84vw); aspect-ratio: 16 / 9; height: auto; max-height: 82vh; border: 0; }
+
+/* home: Instagram reels */
+.reels { padding: 16vh 0 14vh; }
+.reels-sub { margin-top: 1rem; }
+.reels-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 1.4rem; padding: 0 6vw; align-items: start; }
+/* Instagram's player can't be restyled, so it is cropped: the 4:5 window shows only the
+   video, hiding the profile bar above it and the likes / comments / links below */
+.reel { position: relative; aspect-ratio: 23 / 28; border-radius: 22px; overflow: hidden; background: #000; box-shadow: var(--shadow); }
+.reel iframe { position: absolute; left: 0; top: -67px; width: 100%; height: calc(100% + 420px); border: 0; pointer-events: none; }
+.reel-link { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; align-content: center; gap: 0.9rem; color: #fff; transition: background 0.3s; }
+.reel-link:hover { background: rgba(18, 10, 13, 0.12); }
+.reel-cta { position: absolute; bottom: 1.3rem; left: 0; right: 0; text-align: center; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
+.reels-more { display: flex; justify-content: center; margin-top: 5vh; }
+@media (max-width: 1200px) { .reels-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .reels-grid { grid-template-columns: 1fr; padding: 0 16px; } }
