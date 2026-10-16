@@ -1,6 +1,6 @@
 "use client";
 import { useRef } from "react";
-import { motion, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import BookingBar from "./BookingBar";
 
 const words = ["Where", "every", "moment", "becomes", "a", "memory."];
@@ -9,43 +9,18 @@ export default function Hero() {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
 
-  // Scroll parallax: each layer moves at a different speed
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "35%"]);
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1.15, 1.35]);
-  const titleY = useTransform(scrollYProgress, [0, 1], ["0%", "-60%"]);
+  // The text fades as the page scrolls; the banner photo itself stays still
   const fade = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
-  const orbY = useTransform(scrollYProgress, [0, 1], ["0%", "-120%"]);
-
-  // Mouse parallax
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const smx = useSpring(mx, { stiffness: 60, damping: 20 });
-  const smy = useSpring(my, { stiffness: 60, damping: 20 });
-  const bgX = useTransform(smx, (v) => v * -25);
-  const bgYm = useTransform(smy, (v) => v * -25);
-  const fgX = useTransform(smx, (v) => v * 30);
-  const fgY = useTransform(smy, (v) => v * 30);
-
-  const onMove = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    mx.set((e.clientX - r.left) / r.width - 0.5);
-    my.set((e.clientY - r.top) / r.height - 0.5);
-  };
 
   return (
-    <section id="top" ref={ref} className="hero" onMouseMove={onMove}>
-      <motion.div className="hero-bg" style={{ y: bgY, scale: bgScale }}>
-        <motion.div className="hero-bg-inner" style={{ x: bgX, y: bgYm }}>
-          {/* Same banner photo as casasaga.in */}
-          <img src="/images/hero-banner.jpg" alt="" fetchPriority="high" aria-hidden="true" />
-        </motion.div>
-      </motion.div>
+    <section id="top" ref={ref} className="hero">
+      <div className="hero-bg">
+        {/* Same banner photo as casasaga.in — fixed, no movement */}
+        <img src="/images/hero-banner.jpg" alt="" fetchPriority="high" aria-hidden="true" />
+      </div>
       <div className="hero-veil" />
 
-      <motion.div className="orb orb-a" style={{ y: orbY, x: fgX }} />
-      <motion.div className="orb orb-b" style={{ y: orbY, x: fgY }} />
-
-      <motion.div className="hero-content" style={{ y: titleY, opacity: fade }}>
+      <motion.div className="hero-content" style={{ opacity: fade }}>
         <motion.p
           className="eyebrow"
           initial={{ opacity: 0, y: 20 }}
@@ -74,7 +49,7 @@ export default function Hero() {
           animate={{ opacity: 1 }}
           transition={{ delay: 2.8, duration: 1 }}
         >
-          Four themed suites, private jacuzzis and in-house celebration decor — crafted for couples,
+          Themed suites across Bangalore, private jacuzzis and in-house celebration decor — crafted for couples,
           honeymooners and every anniversary worth celebrating.
         </motion.p>
       </motion.div>
