@@ -18,6 +18,31 @@ export const contact = {
   mapUrl: "https://www.google.com/maps/search/?api=1&query=Casasaga+1613+2nd+Block+Banashankari+6th+Stage+Bangalore+560061",
 };
 
+// The two properties; each suite's `location` is one of these ids
+export const locations = [
+  {
+    id: "banashankari",
+    name: "Banashankari 6th Stage",
+    address: ["Casasaga 1613, 2nd Block", "Banashankari 6th Stage", "Bangalore 560061, Karnataka"],
+    mapUrl: "https://www.google.com/maps/search/?api=1&query=Casasaga+1613+2nd+Block+Banashankari+6th+Stage+Bangalore+560061",
+    mapQuery: "Banashankari 6th Stage, Bangalore 560061",
+  },
+  {
+    id: "jp-nagar",
+    name: "JP Nagar 7th Phase",
+    address: ["JP Nagar 7th Phase", "Bangalore, Karnataka"],
+    mapUrl: "https://maps.app.goo.gl/3334obPGcP4PHHQw5",
+    mapQuery: "12.8940229,77.5784378",
+  },
+  {
+    id: "banashankari-5th-stage",
+    name: "Banashankari 5th Stage",
+    address: ["Banashankari 5th Stage", "Bangalore, Karnataka"],
+    mapUrl: "https://www.google.com/maps?q=12.900843620300293,77.53178405761719&z=17&hl=en",
+    mapQuery: "12.900843620300293,77.53178405761719",
+  },
+];
+
 export const policies = [
   { label: "Check-in", value: "From 2:00 PM" },
   { label: "Check-out", value: "Until 11:00 AM" },
@@ -208,7 +233,6 @@ export const gallery = [
   { src: "/images/gallery-hero.jpg", cat: "Spaces", alt: "CasaSaga interior" },
   { src: "/images/sakura-jacuzzi-1.jpg", cat: "Suites", alt: "Sakura Suite circular jacuzzi" },
   { src: "/images/riviera-lounge-1.jpg", cat: "Suites", alt: "Riviera Suite lounge" },
-  { src: "/images/cta.jpg", cat: "Romantic Setups", alt: "Suite prepared for the evening" },
   { src: "/images/tulum-lounge-1.jpg", cat: "Suites", alt: "Tulum Suite lounge" },
   { src: "/images/sakura-wardrobe-1.jpg", cat: "Spaces", alt: "Sakura Suite wardrobe" },
   { src: "/images/riviera-jacuzzi-1.jpg", cat: "Romantic Setups", alt: "Riviera Suite jacuzzi" },

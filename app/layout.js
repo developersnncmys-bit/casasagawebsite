@@ -3,6 +3,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ContentProvider } from "@/components/ContentProvider";
+import SourceTracker from "@/components/SourceTracker";
 import { getContent } from "@/lib/content";
 import "./globals.css";
 import "./pages.css";
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }) {
       {/* Browser extensions (e.g. ColorZilla's cz-shortcut-listen) add attributes to <body> before React loads */}
       <body suppressHydrationWarning>
         <ContentProvider content={content}>
+          <SourceTracker />
           <SmoothScroll>
             <Navbar />
             <main>{children}</main>

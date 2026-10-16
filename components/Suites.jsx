@@ -2,10 +2,11 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { formatINR } from "./content-helpers";
+import { findLocation, formatINR, taxNote } from "./content-helpers";
 import { useContent } from "./ContentProvider";
+import PinIcon from "./PinIcon";
 
-function SuiteCard({ s, i }) {
+function SuiteCard({ s, i, pricing, location }) {
   const ref = useRef(null);
   // Image drifts slightly against the scroll for a depth effect
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
@@ -26,11 +27,12 @@ function SuiteCard({ s, i }) {
         <motion.img src={s.img} alt={`${s.name} Suite`} style={{ y: imgY }} />
         <span className="suite-index">0{i + 1}</span>
         <span className="suite-price">
-          ₹{formatINR(s.price)}<small>/night</small>
+          ₹{formatINR(s.price)}<small>/night {taxNote(pricing, s)}</small>
         </span>
       </Link>
       <div className="suite-body">
         <p className="suite-mood">{s.tag} · {s.mood}</p>
+        {location && <p className="loc-pill"><PinIcon /> {location.name}</p>}
         <h3>
           {s.name} <em>Suite</em>
         </h3>
@@ -50,7 +52,10 @@ function SuiteCard({ s, i }) {
 }
 
 export default function Suites() {
-  const { suites } = useContent();
+  const content = useContent();
+  const { suites, pricing, locations } = content;
+  // The first three visible suites, in the order set in the admin panel; the rest are on the Suites page
+  const shown = suites.slice(0, 3);
   return (
     <section id="suites" className="suites">
       <div className="suites-head">
@@ -61,15 +66,23 @@ export default function Suites() {
           </h2>
         </div>
         <div className="suites-head-side">
-          <p className="muted">Four suites, four moods — each with its own private water ritual.</p>
-          <Link href="/rooms" className="link-line">All suites</Link>
+          <p className="muted">
+            {suites.length} suites across {locations.length} location{locations.length > 1 ? "s" : ""} in Bangalore — each with its own private
+            water ritual.
+          </p>
+          <Link href="/rooms" className="link-line">View all {suites.length} suites</Link>
         </div>
       </div>
       <div className="suites-list">
-        {suites.map((s, i) => (
-          <SuiteCard key={s.id} s={s} i={i} />
+        {shown.map((s, i) => (
+          <SuiteCard key={s.id} s={s} i={i} pricing={pricing} location={findLocation(content, s.location)} />
         ))}
       </div>
+      {suites.length > shown.length && (
+        <div className="suites-more">
+          <Link href="/rooms" className="btn btn-ghost">Explore all {suites.length} suites</Link>
+        </div>
+      )}
     </section>
   );
 }

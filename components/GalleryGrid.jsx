@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import Lightbox from "./Lightbox";
+import { MediaThumb } from "./Media";
 import { useContent } from "./ContentProvider";
 
 function Column({ items, speed, progress, onOpen }) {
@@ -21,7 +22,7 @@ function Column({ items, speed, progress, onOpen }) {
             transition={{ duration: 0.5 }}
             aria-label={`Open ${img.alt}`}
           >
-            <img src={img.src} alt={img.alt} loading="lazy" />
+            <MediaThumb src={img.src} alt={img.alt} />
             <span className="g-cap">{img.cat}</span>
           </motion.button>
         ))}

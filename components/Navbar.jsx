@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { nav } from "./data";
+import { useContent } from "./ContentProvider";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { locations } = useContent();
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);
   const [solid, setSolid] = useState(false);
@@ -35,11 +37,28 @@ export default function Navbar() {
         <img src="/images/logo.png" alt="CasaSaga" />
       </Link>
       <nav className={`nav-links ${open ? "is-open" : ""}`}>
-        {nav.map((n) => (
-          <Link key={n.href} href={n.href} className={isActive(n.href) ? "active" : ""}>
-            {n.label}
-          </Link>
-        ))}
+        {nav.map((n) =>
+          n.href === "/rooms" ? (
+            // Suites: pick a location
+            <div key={n.href} className="nav-drop">
+              <Link href="/rooms" className={isActive("/rooms") ? "active" : ""} aria-haspopup="true">
+                {n.label} <span className="nav-caret" aria-hidden>▾</span>
+              </Link>
+              <div className="nav-menu" role="menu">
+                <Link href="/rooms" role="menuitem">All suites</Link>
+                {locations.map((l) => (
+                  <Link key={l.id} href={`/rooms?location=${l.id}`} role="menuitem">
+                    {l.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <Link key={n.href} href={n.href} className={isActive(n.href) ? "active" : ""}>
+              {n.label}
+            </Link>
+          ),
+        )}
         <Link href="/booking" className="btn btn-gold nav-cta-mobile">Book Now</Link>
       </nav>
       <Link href="/booking" className="btn btn-gold nav-cta">Book Now</Link>

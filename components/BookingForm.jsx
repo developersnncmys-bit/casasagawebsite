@@ -2,9 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { addonPrice, formatINR } from "./content-helpers";
+import { addonPrice, formatINR, priceStay, taxNote } from "./content-helpers";
 import { useContent } from "./ContentProvider";
-import { sendToBackend, useTakenSuites } from "./backend";
+import { getSource, sendToBackend, useTakenSuites } from "./backend";
+import PinIcon from "./PinIcon";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const nightsBetween = (a, b) => (a && b && b > a ? Math.round((new Date(b) - new Date(a)) / 86400000) : 0);
@@ -16,7 +17,7 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const STEPS = ["Dates & guests", "Choose your suite", "Enhance your stay", "Your details"];
 
 export default function BookingForm() {
-  const { addons, contact, getAddon, getSuite, occasions, policies, suites } = useContent();
+  const { addons, contact, getAddon, getSuite, locations, occasions, policies, pricing, suites } = useContent();
   const policy = (label) => policies.find((p) => p.label.toLowerCase() === label)?.value;
   const p = useSearchParams();
   const startAddon = getAddon(p.get("addon"));
@@ -51,14 +52,24 @@ export default function BookingForm() {
   };
   const nights = nightsBetween(form.in, form.out);
   // Suites already booked for these dates aren't offered
-  const { loading: checking, taken } = useTakenSuites(nights > 0 ? form.in : "", nights > 0 ? form.out : "", availKey);
-  const freeSuites = suites.filter((s) => !taken.has(s.id));
+  const { loading: checking, taken, free: roomsLeft } = useTakenSuites(nights > 0 ? form.in : "", nights > 0 ? form.out : "", availKey);
+  // Which property's suites to show: from ?location=, else the suite the guest came from
+  const [place, setPlace] = useState(() => {
+    const wanted = p.get("location");
+    if (locations.some((l) => l.id === wanted)) return wanted;
+    return getSuite(p.get("suite"))?.location || "all";
+  });
+  const placeSuites = place === "all" ? suites : suites.filter((s) => s.location === place);
+  const freeSuites = placeSuites.filter((s) => !taken.has(s.id));
+  // Every suite keeps its usual place; booked ones show greyed out as sold out
+  const listedSuites = placeSuites;
+  const locationName = (id) => locations.find((l) => l.id === id)?.name;
   const suite = taken.has(form.suite) ? undefined : getSuite(form.suite);
-  const roomTotal = suite ? nights * suite.price : 0;
   const chosenAddons = form.addons.map(getAddon).filter(Boolean);
-  const addonTotal = chosenAddons.reduce((t, a) => t + (a.price || 0), 0);
   const unpricedAddons = chosenAddons.some((a) => !a.price);
-  const total = roomTotal + addonTotal;
+  // Base fee + add-ons + convenience fee + GST, calculated automatically
+  const bill = priceStay(pricing, suite, nights, chosenAddons);
+  const total = bill.total;
 
   useEffect(() => {
     if (form.suite && taken.has(form.suite)) setForm((f) => ({ ...f, suite: "" }));
@@ -70,10 +81,17 @@ export default function BookingForm() {
       first.current = false;
       return;
     }
-    const el = stepRefs.current[step];
-    if (!el) return;
-    if (window.__lenis) window.__lenis.scrollTo(el, { offset: -110 });
-    else el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Wait until the previous step has closed, so the position is measured on the final
+    // layout — measuring earlier (with the long suite list still open) overshot to the footer
+    const t = setTimeout(() => {
+      const el = stepRefs.current[step];
+      if (!el) return;
+      if (window.__lenis) {
+        window.__lenis.resize(); // the page just got shorter
+        window.__lenis.scrollTo(el, { offset: -110 });
+      } else el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+    return () => clearTimeout(t);
   }, [step]);
 
   const goTo = (i) => {
@@ -145,6 +163,8 @@ export default function BookingForm() {
       email: form.email,
       occasion: form.occasion,
       notes: form.notes,
+      // Instagram, Facebook, Google… — shown as the booking's source in the admin panel
+      source: getSource(),
     });
     setSending(false);
     if (res.status === 409) {
@@ -182,6 +202,13 @@ export default function BookingForm() {
           {done.addonItems?.length > 0 && (
             <div><dt>Add-ons</dt><dd>{done.addonItems.map((a) => a.title).join(", ")}</dd></div>
           )}
+          <div><dt>Base fee</dt><dd>₹{formatINR(done.roomTotal)}</dd></div>
+          {done.addonTotal > 0 && <div><dt>Add-ons</dt><dd>₹{formatINR(done.addonTotal)}</dd></div>}
+          {done.convenienceFee > 0 && <div><dt>Convenience fee</dt><dd>₹{formatINR(done.convenienceFee)}</dd></div>}
+          {done.taxAmount - (done.addonTaxAmount || 0) > 0 && (
+            <div><dt>GST on stay ({done.taxRate}%)</dt><dd>₹{formatINR(done.taxAmount - (done.addonTaxAmount || 0))}</dd></div>
+          )}
+          {done.addonTaxAmount > 0 && <div><dt>GST on add-ons</dt><dd>₹{formatINR(done.addonTaxAmount)}</dd></div>}
           <div className="done-total"><dt>Total</dt><dd>₹{formatINR(done.total)}</dd></div>
         </dl>
         <p className="muted small-note">
@@ -226,9 +253,22 @@ export default function BookingForm() {
 
     // 2 — suites, one below the other
     <div className="room-pick">
+      {locations.length > 1 && (
+        <div className="loc-tabs loc-tabs-inline" role="tablist" aria-label="Location">
+          <button type="button" role="tab" aria-selected={place === "all"} className={place === "all" ? "on" : ""} onClick={() => setPlace("all")}>
+            All locations
+          </button>
+          {locations.map((l) => (
+            <button type="button" role="tab" key={l.id} aria-selected={place === l.id} className={place === l.id ? "on" : ""} onClick={() => setPlace(l.id)}>
+              {l.name} <span>{suites.filter((s) => s.location === l.id).length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {!checking && placeSuites.length === 0 && <p className="avail-note">Suites at this location are coming soon.</p>}
       {clash && <p className="avail-note warn">{clash}</p>}
       {checking && <p className="avail-note">Checking availability for your dates…</p>}
-      {!checking && nights > 0 && freeSuites.length === 0 && (
+      {!checking && nights > 0 && placeSuites.length > 0 && freeSuites.length === 0 && (
         <div className="avail-note warn">
           Every suite is booked for these dates.{" "}
           <button type="button" className="link-line" onClick={() => goTo(0)}>Try other dates</button>
@@ -236,20 +276,28 @@ export default function BookingForm() {
       )}
       {!checking && nights > 0 && taken.size > 0 && freeSuites.length > 0 && (
         <p className="avail-note">
-          {freeSuites.length} of {suites.length} suites are free for your dates.
+          {freeSuites.length} of {placeSuites.length} suites are free for your dates — {placeSuites.length - freeSuites.length} sold out.
         </p>
       )}
-      {(checking ? [] : freeSuites).map((s) => {
-        const on = form.suite === s.id;
+      {(checking ? [] : listedSuites).map((s) => {
+        const soldOut = nights > 0 && taken.has(s.id);
+        const on = !soldOut && form.suite === s.id;
         return (
-          <article key={s.id} className={`rp ${on ? "on" : ""}`} style={{ "--accent": s.accent }}>
+          <article
+            key={s.id}
+            className={`rp ${on ? "on" : ""} ${soldOut ? "sold-out" : ""}`}
+            style={{ "--accent": s.accent }}
+            aria-disabled={soldOut || undefined}
+          >
             <div className="rp-img">
               <img src={s.img} alt={`${s.name} Suite`} />
               {on && <span className="rp-badge">Selected</span>}
+              {soldOut && <span className="rp-sold">Sold out</span>}
             </div>
             <div className="rp-body">
               <p className="suite-mood">{s.tag} · {s.mood}</p>
               <h4>{s.name} <em>Suite</em></h4>
+              <p className="loc-pill"><PinIcon /> {locationName(s.location)}</p>
               <p className="muted rp-blurb">{s.blurb}</p>
               <ul className="chip-list">
                 {s.features.map((f) => (
@@ -260,10 +308,31 @@ export default function BookingForm() {
             </div>
             <div className="rp-rate">
               <strong>₹{formatINR(s.price)}</strong>
-              <small>per night</small>
-              {nights > 0 && <small className="rp-total">₹{formatINR(s.price * nights)} for {plural(nights, "night")}</small>}
-              <button type="button" className={`btn ${on ? "btn-gold" : "btn-ghost"}`} onClick={() => chooseSuite(s.id)}>
-                {on ? "Continue" : "Select"}
+              <small>per night {taxNote(pricing, s)}</small>
+              {!soldOut && nights > 0 && roomsLeft[s.id] > 0 && (
+                <small className={`rp-left ${roomsLeft[s.id] <= 3 ? "low" : ""}`}>
+                  {roomsLeft[s.id] <= 3
+                    ? `Only ${roomsLeft[s.id]} room${roomsLeft[s.id] > 1 ? "s" : ""} left`
+                    : `${roomsLeft[s.id]} rooms available`}
+                </small>
+              )}
+              {soldOut ? (
+                <small className="rp-total rp-sold-note">Fully booked for your dates — try other dates</small>
+              ) : (
+                nights > 0 && (
+                  <small className="rp-total">
+                    ₹{formatINR(priceStay(pricing, s, nights).total)} for {plural(nights, "night")}
+                    {priceStay(pricing, s, nights).taxRate > 0 ? " incl. GST" : ""}
+                  </small>
+                )
+              )}
+              <button
+                type="button"
+                className={`btn ${on ? "btn-gold" : "btn-ghost"}`}
+                onClick={() => !soldOut && chooseSuite(s.id)}
+                disabled={soldOut}
+              >
+                {soldOut ? "Sold out" : on ? "Continue" : "Select"}
               </button>
             </div>
           </article>
@@ -286,7 +355,7 @@ export default function BookingForm() {
                 <span className="ap-title">{a.title}</span>
                 <span className="ap-text">{a.text}</span>
                 <span className="ap-foot">
-                  <span className="ap-price">{addonPrice(a)}</span>
+                  <span className="ap-price">{addonPrice(a, pricing)}</span>
                   <span className="ap-toggle">{on ? "✓ Added" : "+ Add"}</span>
                 </span>
               </span>
@@ -373,7 +442,8 @@ export default function BookingForm() {
                     className="bstep-body"
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
+                    // Closing is instant so the page height settles before we scroll to the next step
+                    exit={{ height: 0, opacity: 0, transition: { duration: 0 } }}
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <div className="bstep-inner">{content[i]}</div>
@@ -405,6 +475,7 @@ export default function BookingForm() {
             <>
               <p className="suite-mood" style={{ color: suite.accent }}>{suite.mood}</p>
               <h3>{suite.name} <em>Suite</em></h3>
+              <p className="loc-pill"><PinIcon /> {locationName(suite.location)}</p>
             </>
           ) : (
             <h3>Choose a <em>suite</em></h3>
@@ -413,26 +484,45 @@ export default function BookingForm() {
             <div className="dl-row"><dt>Check-in</dt><dd>{form.in ? fmtDate(form.in) : "—"}</dd></div>
             <div className="dl-row"><dt>Check-out</dt><dd>{form.out ? fmtDate(form.out) : "—"}</dd></div>
             <div className="dl-row"><dt>Guests</dt><dd>{form.guests}</dd></div>
-            {suite && (
+            {suite && nights > 0 && (
               <div className="dl-row">
-                <dt>₹{formatINR(suite.price)} × {plural(nights, "night")}</dt>
-                <dd>₹{formatINR(roomTotal)}</dd>
+                <dt>Base fee · ₹{formatINR(suite.price)} × {plural(nights, "night")}</dt>
+                <dd>₹{formatINR(bill.roomTotal)}</dd>
               </div>
             )}
             {chosenAddons.map((a) => (
               <div key={a.id} className="dl-row">
                 <dt>{a.title}</dt>
-                <dd>{addonPrice(a)}</dd>
+                <dd>{a.price ? `₹${formatINR(a.price)}` : "On request"}</dd>
               </div>
             ))}
+            {bill.convenienceFee > 0 && (
+              <div className="dl-row">
+                <dt>Convenience fee</dt>
+                <dd>₹{formatINR(bill.convenienceFee)}</dd>
+              </div>
+            )}
+            {bill.taxRate > 0 && bill.roomTotal > 0 && (
+              <div className="dl-row">
+                <dt>GST on stay ({bill.taxRate}%)</dt>
+                <dd>₹{formatINR(bill.stayTaxAmount)}</dd>
+              </div>
+            )}
+            {bill.addonTaxAmount > 0 && (
+              <div className="dl-row">
+                <dt>GST on add-ons ({bill.addonTaxRates.join("/")}%)</dt>
+                <dd>₹{formatINR(bill.addonTaxAmount)}</dd>
+              </div>
+            )}
           </dl>
           <div className="bp-total">
-            <span>Estimated total</span>
+            <span>Total</span>
             <strong>₹{formatINR(total)}</strong>
           </div>
           <p className="muted bp-note">
-            {unpricedAddons && "Decoration prices are agreed with our team after booking. "}
-            Taxes as applicable. Free cancellation up to 48 hours before arrival.
+            {unpricedAddons && "Decoration prices are agreed with our team after booking, plus GST. "}
+            {bill.taxAmount > 0 ? "Includes GST and fees. " : "Taxes as applicable. "}
+            Free cancellation up to 48 hours before arrival.
           </p>
         </div>
       </aside>

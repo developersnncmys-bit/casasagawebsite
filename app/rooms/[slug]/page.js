@@ -4,7 +4,7 @@ import PageHero from "@/components/PageHero";
 import ParallaxImg from "@/components/ParallaxImg";
 import Reveal from "@/components/Reveal";
 import SuiteGallery from "@/components/SuiteGallery";
-import { findSuite, formatINR, waLinkFor } from "@/components/content-helpers";
+import { findLocation, findSuite, formatINR, isVideo, suiteTax, taxNote, waLinkFor } from "@/components/content-helpers";
 import { getContent } from "@/lib/content";
 
 // Suites added later in the admin panel are rendered on first visit
@@ -24,15 +24,17 @@ export async function generateMetadata({ params }) {
 export default async function SuitePage({ params }) {
   const { slug } = await params;
   const content = await getContent();
-  const { suites, policies } = content;
+  const { suites, policies, pricing } = content;
   const waLink = waLinkFor(content.contact);
   const s = findSuite(content, slug);
   if (!s) notFound();
   const others = suites.filter((o) => o.id !== s.id);
+  // Videos play in the gallery; the banner and large picture need photos
+  const photos = s.gallery.filter((g) => !isVideo(g));
 
   return (
     <div style={{ "--accent": s.accent }}>
-      <PageHero eyebrow={`${s.tag} · ${s.mood}`} title={s.name} accent="Suite" sub={s.blurb} img={s.gallery[0]} />
+      <PageHero eyebrow={`${s.tag} · ${s.mood}`} title={s.name} accent="Suite" sub={s.blurb} img={photos[0] || s.img} />
 
       <section className="suite-detail">
         <div className="sd-main">
@@ -40,7 +42,7 @@ export default async function SuitePage({ params }) {
             <p className="eyebrow">The suite</p>
             <p className="sd-story">{s.story}</p>
           </Reveal>
-          <ParallaxImg src={s.gallery[1]} alt={`${s.name} Suite`} className="sd-img" speed={14} />
+          <ParallaxImg src={photos[1] || photos[0] || s.img} alt={`${s.name} Suite`} className="sd-img" speed={14} />
           <Reveal>
             <h3 className="sd-h">In the suite</h3>
             <ul className="amenity-list">
@@ -54,11 +56,31 @@ export default async function SuitePage({ params }) {
         <aside className="sd-card">
           <p className="suite-mood">{s.tag}</p>
           <div className="room-price">
-            ₹{formatINR(s.price)} <small>per night</small>
+            ₹{formatINR(s.price)} <small>per night {taxNote(pricing, s)}</small>
           </div>
           <dl>
+            {(() => {
+              const loc = findLocation(content, s.location);
+              return loc ? (
+                <div className="dl-row">
+                  <dt>Location</dt>
+                  <dd>
+                    {loc.name}
+                    {loc.mapUrl && (
+                      <>
+                        <br />
+                        <a href={loc.mapUrl} target="_blank" rel="noopener noreferrer" className="link-line">Directions</a>
+                      </>
+                    )}
+                  </dd>
+                </div>
+              ) : null;
+            })()}
             {s.size && <div className="dl-row"><dt>Size</dt><dd>{s.size}</dd></div>}
             {s.guests && <div className="dl-row"><dt>Occupancy</dt><dd>{s.guests}</dd></div>}
+            {suiteTax(pricing, s) > 0 && (
+              <div className="dl-row"><dt>Per night incl. GST</dt><dd>₹{formatINR(Math.round(s.price * (1 + suiteTax(pricing, s) / 100)))}</dd></div>
+            )}
             {policies.slice(0, 3).map((p) => (
               <div key={p.label} className="dl-row"><dt>{p.label}</dt><dd>{p.value}</dd></div>
             ))}
@@ -72,7 +94,6 @@ export default async function SuitePage({ params }) {
           >
             Ask on WhatsApp
           </a>
-          <Link href={`/contact?topic=${encodeURIComponent(s.name + " Suite")}`} className="link-line">Send an enquiry</Link>
         </aside>
       </section>
 
@@ -101,7 +122,7 @@ export default async function SuitePage({ params }) {
                 <div className="other-info">
                   <span className="suite-mood">{o.mood}</span>
                   <h3>{o.name} <em>Suite</em></h3>
-                  <span>₹{formatINR(o.price)} / night →</span>
+                  <span>₹{formatINR(o.price)} / night {taxNote(pricing, o)} →</span>
                 </div>
               </Link>
             </Reveal>

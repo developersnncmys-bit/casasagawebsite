@@ -1,14 +1,12 @@
-import { Suspense } from "react";
 import PageHero from "@/components/PageHero";
-import ContactForm from "@/components/ContactForm";
 import Reveal from "@/components/Reveal";
-import { waLinkFor } from "@/components/content-helpers";
+import { mapEmbed, waLinkFor } from "@/components/content-helpers";
 import { getContent } from "@/lib/content";
 
 export const metadata = { title: "Contact" };
 
 export default async function ContactPage() {
-  const { contact } = await getContent();
+  const { contact, locations } = await getContent();
   const waLink = waLinkFor(contact);
   return (
     <>
@@ -20,17 +18,45 @@ export default async function ContactPage() {
         img="/images/tulum-bedroom-1.jpg"
       />
 
+      <section className="locations">
+        <Reveal className="section-head center">
+          <p className="eyebrow">Our locations</p>
+          <h2>
+            {locations.length} homes in <em>Bangalore</em>
+          </h2>
+        </Reveal>
+        <div className="loc-grid" style={{ "--cols": Math.min(locations.length, 3) }}>
+          {locations.map((loc, i) => (
+            <Reveal key={loc.id} delay={i * 0.1} className="loc-card">
+              <iframe
+                title={`CasaSaga ${loc.name} map`}
+                src={mapEmbed(loc)}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              <div className="loc-card-body">
+                <h3>{loc.name}</h3>
+                <address>
+                  {loc.address.map((l) => (
+                    <span key={l}>{l}</span>
+                  ))}
+                </address>
+                <div className="loc-card-actions">
+                  {loc.mapUrl && (
+                    <a href={loc.mapUrl} target="_blank" rel="noopener noreferrer" className="btn btn-gold">
+                      Get directions
+                    </a>
+                  )}
+                  <a href={`/rooms?location=${loc.id}`} className="link-line">View suites</a>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
       <section className="contact">
         <Reveal className="contact-info">
-          <div className="info-block">
-            <h4>Visit</h4>
-            <address>
-              {contact.address.map((l) => (
-                <span key={l}>{l}</span>
-              ))}
-            </address>
-            <a href={contact.mapUrl} target="_blank" rel="noopener noreferrer" className="link-line">Get directions</a>
-          </div>
           <div className="info-block">
             <h4>Call</h4>
             <a href={`tel:${contact.tel}`} className="info-big">{contact.phone}</a>
@@ -51,22 +77,6 @@ export default async function ContactPage() {
             <p className="muted">Check-in from 2:00 PM to 10:00 PM</p>
           </div>
         </Reveal>
-
-        <Reveal className="contact-form-wrap" delay={0.1}>
-          <p className="eyebrow">Send an enquiry</p>
-          <Suspense fallback={null}>
-            <ContactForm />
-          </Suspense>
-        </Reveal>
-      </section>
-
-      <section className="map-wrap">
-        <iframe
-          title="CasaSaga location"
-          src="https://www.google.com/maps?q=Banashankari+6th+Stage,+Bangalore+560061&output=embed"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
       </section>
     </>
   );

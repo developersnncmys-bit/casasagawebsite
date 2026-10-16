@@ -4,7 +4,7 @@ import { waLinkFor } from "./content-helpers";
 import { getContent } from "@/lib/content";
 
 export default async function Footer() {
-  const { contact } = await getContent();
+  const { contact, locations } = await getContent();
   const waLink = waLinkFor(contact);
   return (
     <footer id="contact-footer" className="footer">
@@ -29,14 +29,21 @@ export default async function Footer() {
         </div>
         <div>
           <h4>Find us</h4>
-          <address>
-            {contact.address.map((l) => (
-              <span key={l}>{l}</span>
-            ))}
-          </address>
-          <a href={contact.mapUrl} target="_blank" rel="noopener noreferrer" className="link-line footer-map">
-            Get directions
-          </a>
+          {locations.map((loc) => (
+            <div key={loc.id} className="footer-loc">
+              <strong>{loc.name}</strong>
+              <address>
+                {loc.address.map((l) => (
+                  <span key={l}>{l}</span>
+                ))}
+              </address>
+              {loc.mapUrl && (
+                <a href={loc.mapUrl} target="_blank" rel="noopener noreferrer" className="link-line footer-map">
+                  Get directions
+                </a>
+              )}
+            </div>
+          ))}
         </div>
         <div>
           <h4>Talk to us</h4>
