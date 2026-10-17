@@ -8,6 +8,10 @@ import { useContent } from "./ContentProvider";
 import { getSource, sendToBackend, useTakenSuites } from "./backend";
 import PinIcon from "./PinIcon";
 import { payWithRazorpay } from "./razorpay";
+import { checkEmail, checkName, checkPhone, checkText, collect } from "./validate";
+
+// Longest stay the website books (longer ones by phone)
+const MAX_NIGHTS = 30;
 
 const today = () => new Date().toISOString().slice(0, 10);
 const nightsBetween = (a, b) => (a && b && b > a ? Math.round((new Date(b) - new Date(a)) / 86400000) : 0);
@@ -125,17 +129,22 @@ export default function BookingForm() {
   };
 
   const validate = (i) => {
-    const err = {};
+    let err = {};
     if (i === 0) {
       if (!form.in) err.in = "Choose a check-in date.";
+      else if (form.in < today()) err.in = "Check-in can't be in the past.";
       if (!form.out) err.out = "Choose a check-out date.";
       else if (form.in && nights < 1) err.out = "Check-out must be after check-in.";
+      else if (nights > MAX_NIGHTS) err.out = `Online bookings are up to ${MAX_NIGHTS} nights — call us for longer stays.`;
     }
     if (i === 3) {
-      if (form.name.trim().length < 2) err.name = "Please enter your name.";
-      if (!/^[+\d][\d\s-]{7,}$/.test(form.phone)) err.phone = "Please enter a valid phone number.";
-      // Required: the booking confirmation is emailed
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) err.email = "Please enter your email — we'll send your booking confirmation there.";
+      err = collect({
+        name: checkName(form.name, "name"),
+        phone: checkPhone(form.phone),
+        // Required: the booking confirmation is emailed
+        email: checkEmail(form.email, { required: true }) && "Please enter a valid email — we'll send your booking confirmation there.",
+        notes: checkText(form.notes, { max: 500, label: "special requests" }),
+      });
     }
     setErrors(err);
     return !Object.keys(err).length;
@@ -508,19 +517,19 @@ export default function BookingForm() {
       <div className="form-row">
         <label className={`field ${errors.name ? "has-error" : ""}`}>
           <span>Full name *</span>
-          <input value={form.name} onChange={set("name")} autoComplete="name" />
+          <input value={form.name} onChange={set("name")} autoComplete="name" maxLength={80} />
           {err("name")}
         </label>
         <label className={`field ${errors.phone ? "has-error" : ""}`}>
           <span>Phone *</span>
-          <input type="tel" value={form.phone} onChange={set("phone")} autoComplete="tel" />
+          <input type="tel" inputMode="tel" value={form.phone} onChange={set("phone")} autoComplete="tel" maxLength={16} placeholder="10-digit mobile number" />
           {err("phone")}
         </label>
       </div>
       <div className="form-row">
         <label className={`field ${errors.email ? "has-error" : ""}`}>
           <span>Email * <small className="field-note">— your confirmation is sent here</small></span>
-          <input type="email" value={form.email} onChange={set("email")} autoComplete="email" required />
+          <input type="email" value={form.email} onChange={set("email")} autoComplete="email" maxLength={160} required />
           {err("email")}
         </label>
         <label className="field">
@@ -532,9 +541,10 @@ export default function BookingForm() {
           </select>
         </label>
       </div>
-      <label className="field">
+      <label className={`field ${errors.notes ? "has-error" : ""}`}>
         <span>Special requests</span>
-        <textarea rows={4} value={form.notes} onChange={set("notes")} placeholder="Decoration theme or colours, cake message, arrival time…" />
+        <textarea rows={4} value={form.notes} onChange={set("notes")} placeholder="Decoration theme or colours, cake message, arrival time…" maxLength={500} />
+        {err("notes")}
       </label>
       {submitError && <p className="avail-note warn" role="alert">{submitError}</p>}
       <p className="muted form-note policy-agree">

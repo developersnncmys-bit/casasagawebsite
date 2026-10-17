@@ -55,7 +55,9 @@ export default function BookingBar() {
   const submit = (e) => {
     e.preventDefault();
     if (!form.in || !form.out) return setMsg("Please choose your check-in and check-out dates.");
+    if (form.in < today()) return setMsg("Check-in can't be in the past.");
     if (form.out <= form.in) return setMsg("Check-out must be after check-in.");
+    if (nightsBetween(form.in, form.out) > 30) return setMsg("Online bookings are up to 30 nights — call us for longer stays.");
     const place = form.location !== "all" ? `&location=${form.location}` : "";
     const suite = rooms && form.suite ? `&suite=${form.suite}` : "";
     router.push(`/booking?in=${form.in}&out=${form.out}&guests=${form.guests}${place}${suite}`);
