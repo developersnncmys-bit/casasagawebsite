@@ -567,3 +567,5 @@ button.link-line { background: none; border: 0; color: var(--ink); font-family: 
 .rules-also { margin-top: 2rem; font-size: 0.9rem; }
 .policy-links { display: flex; gap: 2rem; flex-wrap: wrap; margin: 2.4rem 6vw 0; }
 .sd-rules { align-self: center; margin-top: 0.4rem; }
+.field-note { text-transform: none; letter-spacing: 0; font-size: 0.78rem; color: var(--muted); font-weight: 400; }
+.done-mailed { font-size: 0.9rem; } .done-mailed strong { color: var(--ink); font-weight: 500; }

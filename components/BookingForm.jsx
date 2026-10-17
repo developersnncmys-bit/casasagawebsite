@@ -134,7 +134,8 @@ export default function BookingForm() {
     if (i === 3) {
       if (form.name.trim().length < 2) err.name = "Please enter your name.";
       if (!/^[+\d][\d\s-]{7,}$/.test(form.phone)) err.phone = "Please enter a valid phone number.";
-      if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) err.email = "Please enter a valid email.";
+      // Required: the booking confirmation is emailed
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) err.email = "Please enter your email — we'll send your booking confirmation there.";
     }
     setErrors(err);
     return !Object.keys(err).length;
@@ -296,6 +297,7 @@ export default function BookingForm() {
           <strong>{done.ref}</strong>
           <small>Please keep it handy for check-in</small>
         </div>
+        {form.email && <p className="muted done-mailed">✉ We&apos;ve emailed your confirmation to <strong>{form.email}</strong></p>}
         <dl className="done-summary">
           <div><dt>{/Flat$/i.test(fullName(done.suiteName || suite?.name)) ? "Stay" : "Suite"}</dt><dd>{fullName(done.suiteName || suite?.name)}</dd></div>
           {suite && locationName(suite.location) && <div><dt>Location</dt><dd>{locationName(suite.location)}</dd></div>}
@@ -514,8 +516,8 @@ export default function BookingForm() {
       </div>
       <div className="form-row">
         <label className={`field ${errors.email ? "has-error" : ""}`}>
-          <span>Email</span>
-          <input type="email" value={form.email} onChange={set("email")} autoComplete="email" />
+          <span>Email * <small className="field-note">— your confirmation is sent here</small></span>
+          <input type="email" value={form.email} onChange={set("email")} autoComplete="email" required />
           {err("email")}
         </label>
         <label className="field">
