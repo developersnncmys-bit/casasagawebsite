@@ -246,6 +246,8 @@ export default function BookingForm() {
 
   if (awaiting && !done) {
     const holdUntil = awaiting.payment?.holdUntil ? new Date(awaiting.payment.holdUntil) : null;
+    // What Checkout charges — the total (₹1 for a test booking)
+    const toPay = awaiting.payment?.amount ? awaiting.payment.amount / 100 : awaiting.total;
     return (
       <motion.div className="form-success booking-done" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
         <p className="eyebrow">Booking {awaiting.ref}</p>
@@ -258,12 +260,13 @@ export default function BookingForm() {
         <dl className="done-summary">
           <div><dt>Stay</dt><dd>{fmtDate(awaiting.checkIn)} → {fmtDate(awaiting.checkOut)}</dd></div>
           <div><dt>Guests</dt><dd>{awaiting.guests} · {plural(awaiting.nights, "night")}</dd></div>
-          <div className="done-total"><dt>To pay</dt><dd>₹{formatINR(awaiting.total)}</dd></div>
+          {toPay !== awaiting.total && <div><dt>Total</dt><dd>₹{formatINR(awaiting.total)}</dd></div>}
+          <div className="done-total"><dt>{toPay !== awaiting.total ? "To pay now (test)" : "To pay"}</dt><dd>₹{formatINR(toPay)}</dd></div>
         </dl>
         {payError && <p className="avail-note warn" role="alert">{payError}</p>}
         <div className="suite-actions">
           <button type="button" className="btn btn-gold" onClick={() => pay(awaiting)} disabled={paying}>
-            {paying ? "Waiting for payment…" : `Pay ₹${formatINR(awaiting.total)}`}
+            {paying ? "Waiting for payment…" : `Pay ₹${formatINR(toPay)}`}
           </button>
           <a href={`tel:${contact.tel}`} className="link-line">Need help? {contact.phone}</a>
         </div>
