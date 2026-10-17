@@ -5,7 +5,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { addonPrice } from "./content-helpers";
 import { useContent } from "./ContentProvider";
 
-function Card({ e, i, total, progress, pricing }) {
+function Card({ e, i, total, progress, pricing, locations }) {
   const start = i / total;
   const scale = useTransform(progress, [start, 1], [1, 1 - (total - i) * 0.05]);
   const ref = useRef(null);
@@ -20,7 +20,10 @@ function Card({ e, i, total, progress, pricing }) {
           <h3>{e.title}</h3>
           <p>{e.text}</p>
           <span className="exp-tag">Add-on · {addonPrice(e, pricing)}</span>
-          <Link href={`/booking?addon=${e.id}`} className="link-line">Add to my stay</Link>
+          {e.locations?.length > 0 && (
+            <span className="exp-where">At {e.locations.map((id) => locations.find((l) => l.id === id)?.name).filter(Boolean).join(" & ")} only</span>
+          )}
+          <Link href={`/booking?addon=${e.id}${e.locations?.length === 1 ? `&location=${e.locations[0]}` : ""}`} className="link-line">Add to my stay</Link>
         </div>
         <div className="exp-media">
           <motion.img src={e.img} alt={e.title} style={{ scale: imgScale }} />
@@ -31,7 +34,7 @@ function Card({ e, i, total, progress, pricing }) {
 }
 
 export default function Experience() {
-  const { addons, pricing } = useContent();
+  const { addons, pricing, locations = [] } = useContent();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   return (
@@ -47,7 +50,7 @@ export default function Experience() {
       </div>
       <div ref={ref}>
         {addons.map((e, i) => (
-          <Card key={e.id} e={e} i={i} total={addons.length} progress={scrollYProgress} pricing={pricing} />
+          <Card key={e.id} e={e} i={i} total={addons.length} progress={scrollYProgress} pricing={pricing} locations={locations} />
         ))}
       </div>
     </section>

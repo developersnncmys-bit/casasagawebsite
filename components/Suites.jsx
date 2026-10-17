@@ -2,7 +2,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { findLocation, formatINR, taxNote } from "./content-helpers";
+import { findLocation, formatINR, fullName, nameParts, taxNote } from "./content-helpers";
 import { useContent } from "./ContentProvider";
 import PinIcon from "./PinIcon";
 
@@ -24,17 +24,17 @@ function SuiteCard({ s, i, pricing, location }) {
       data-hover
     >
       <Link href={`/rooms/${s.id}`} className="suite-media">
-        <motion.img src={s.img} alt={`${s.name} Suite`} style={{ y: imgY }} />
+        <motion.img src={s.img} alt={`${fullName(s.name)}`} style={{ y: imgY }} />
         <span className="suite-index">0{i + 1}</span>
         <span className="suite-price">
           ₹{formatINR(s.price)}<small>/night {taxNote(pricing, s)}</small>
         </span>
       </Link>
       <div className="suite-body">
-        <p className="suite-mood">{s.tag} · {s.mood}</p>
+        <p className="suite-mood">{fullName(s.name)}{s.mood ? ` · ${s.mood}` : ""}</p>
         {location && <p className="loc-pill"><PinIcon /> {location.name}</p>}
         <h3>
-          {s.name} <em>Suite</em>
+          {nameParts(s.name)[0]} <em>{nameParts(s.name)[1]}</em>
         </h3>
         <p className="suite-blurb">{s.blurb}</p>
         <ul>
@@ -54,8 +54,11 @@ function SuiteCard({ s, i, pricing, location }) {
 export default function Suites() {
   const content = useContent();
   const { suites, pricing, locations } = content;
-  // The first three visible suites, in the order set in the admin panel; the rest are on the Suites page
-  const shown = suites.slice(0, 3);
+  // The suites at the first location (Banashankari 6th Stage), in the order set in the admin
+  // panel; the other locations' suites are on the Suites page
+  const home = locations[0]?.id;
+  const atHome = suites.filter((s) => s.location === home);
+  const shown = atHome.length ? atHome : suites.slice(0, 3);
   return (
     <section id="suites" className="suites">
       <div className="suites-head">
@@ -64,13 +67,6 @@ export default function Suites() {
           <h2>
             Our <em>sanctuaries</em>
           </h2>
-        </div>
-        <div className="suites-head-side">
-          <p className="muted">
-            {suites.length} suites across {locations.length} location{locations.length > 1 ? "s" : ""} in Bangalore — each with its own private
-            water ritual.
-          </p>
-          <Link href="/rooms" className="link-line">View all {suites.length} suites</Link>
         </div>
       </div>
       <div className="suites-list">

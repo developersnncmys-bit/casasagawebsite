@@ -1,5 +1,5 @@
 // Helpers that work on the live content (from the CasaSaga API) on both server and client
-import { refundPolicy as defaultRefundPolicy } from "./data";
+import { houseRules as defaultHouseRules, refundPolicy as defaultRefundPolicy } from "./data";
 
 export const formatINR = (n) => (Number(n) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 // GST % on an add-on: its own rate, else the add-on default
@@ -17,22 +17,35 @@ const round2 = (n) => Math.round(n * 100) / 100;
  * then the convenience fee (online bookings) on that total — not taxed.
  * The backend's figure on the confirmed booking is the one that counts.
  */
-export function priceStay(pricing, suite, nights, addons = []) {
+// Guests: the suite's price covers `included`; each guest beyond pays `extraPrice` a night, up to `max`
+export const guestRules = (suite) => ({
+  included: suite?.includedGuests || 2,
+  max: suite?.maxGuests || 4,
+  extraPrice: suite?.extraGuestPrice || 0,
+});
+// The most guests any of these suites takes (for a guests dropdown)
+export const maxGuestsOf = (suites) => Math.max(1, ...suites.map((s) => guestRules(s).max));
+
+// Same sums as the API (casasaga-adminpanel/backend/src/services/booking.service.js)
+export function priceStay(pricing, suite, nights, addons = [], guests = 2) {
   const p = pricing || {};
   const roomTotal = suite && nights > 0 ? round2(nights * suite.price) : 0;
+  const rules = guestRules(suite);
+  const extraGuests = suite ? Math.max(Number(guests) - rules.included, 0) : 0;
+  const extraGuestTotal = nights > 0 ? round2(nights * extraGuests * rules.extraPrice) : 0;
   const addonTotal = round2(addons.reduce((t, a) => t + (a.price || 0), 0));
   const taxRate = suite?.taxRate ?? p.taxRate ?? 0;
-  const stayTaxAmount = round2((roomTotal * taxRate) / 100);
+  const stayTaxAmount = round2(((roomTotal + extraGuestTotal) * taxRate) / 100);
   const addonTaxAmount = round2(addons.reduce((t, a) => t + ((a.price || 0) * addonTax(p, a)) / 100, 0));
   const addonTaxRates = [...new Set(addons.filter((a) => a.price).map((a) => addonTax(p, a)))];
   const taxAmount = round2(stayTaxAmount + addonTaxAmount);
-  const subtotal = round2(roomTotal + addonTotal + taxAmount);
+  const subtotal = round2(roomTotal + extraGuestTotal + addonTotal + taxAmount);
   const convenienceFee = !roomTotal
     ? 0
     : round2(p.convenienceFeeType === "percent" ? (subtotal * (p.convenienceFee || 0)) / 100 : p.convenienceFee || 0);
   const feeLabel = p.convenienceFeeType === "percent" ? `Convenience fee (${p.convenienceFee}%)` : "Convenience fee";
   return {
-    roomTotal, addonTotal, taxRate, stayTaxAmount, addonTaxAmount, addonTaxRates, taxAmount, subtotal, convenienceFee, feeLabel,
+    roomTotal, extraGuests, extraGuestRate: rules.extraPrice, extraGuestTotal, addonTotal, taxRate, stayTaxAmount, addonTaxAmount, addonTaxRates, taxAmount, subtotal, convenienceFee, feeLabel,
     total: round2(subtotal + convenienceFee),
   };
 }
@@ -60,6 +73,7 @@ export function normalize(c) {
     occasions: c.occasions?.length ? c.occasions : ["Romantic Getaway", "Other"],
     values: c.values || [],
     refundPolicy: c.refundPolicy?.length ? c.refundPolicy : defaultRefundPolicy,
+    houseRules: c.houseRules?.length ? c.houseRules : defaultHouseRules,
     galleryCategories: c.galleryCategories?.length ? c.galleryCategories : ["All"],
     pricing: { taxRate: 0, addonTaxRate: 18, convenienceFee: 0, convenienceFeeType: "fixed", ...c.pricing },
     locations: c.locations?.length ? c.locations : [{ id: "banashankari", name: "Banashankari 6th Stage", address: c.contact?.address || [], mapUrl: c.contact?.mapUrl || "" }],
@@ -75,3 +89,12 @@ export function normalize(c) {
     stories: c.stories || [],
   };
 }
+
+// A suite's name for display: "Tulum" → "Tulum Suite", but a name that already says what it is
+// ("1 Bedroom Flat") is shown as it is. nameParts splits off the last word for the gold italic.
+const ROOM_TYPE = /\s(Suite|Flat|Room|Villa|Apartment|Cottage|Studio|Penthouse)$/i;
+export const nameParts = (name = "") => {
+  const m = ROOM_TYPE.exec(name);
+  return m ? [name.slice(0, m.index), m[1]] : [name, "Suite"];
+};
+export const fullName = (name) => nameParts(name).join(" ");

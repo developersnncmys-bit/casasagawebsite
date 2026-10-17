@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useContent } from "./ContentProvider";
+import InstagramIcon, { instagramHandle } from "./InstagramIcon";
 
 // "https://www.instagram.com/reel/DN8IoH5DyfE/?…" → "DN8IoH5DyfE"
 const reelCode = (url) => /instagram\.com\/(?:reel|reels|p)\/([\w-]+)/.exec(url || "")?.[1] || null;
@@ -19,6 +20,11 @@ export default function Reels() {
           Moments at <em>CasaSaga</em>
         </h2>
         <p className="muted reels-sub">A peek inside our suites, setups and celebrations.</p>
+        {contact?.instagram && (
+          <a href={contact.instagram} target="_blank" rel="noopener noreferrer" className="ig-account">
+            <InstagramIcon size={20} /> {instagramHandle(contact.instagram)}
+          </a>
+        )}
       </div>
       <div className="reels-grid" style={{ "--cols": Math.min(codes.length, 4) }}>
         {codes.map((code, i) => (
@@ -54,7 +60,7 @@ export default function Reels() {
       {contact?.instagram && (
         <div className="reels-more">
           <a href={contact.instagram} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-            Follow us on Instagram
+            <InstagramIcon /> Follow us on Instagram
           </a>
         </div>
       )}

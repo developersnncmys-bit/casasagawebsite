@@ -15,6 +15,7 @@ export const contact = {
   phone: "+91 74065 65065",
   tel: "+917406565065",
   whatsapp: "917406565065",
+  instagram: "https://www.instagram.com/casasaga_official/",
   mapUrl: "https://www.google.com/maps/search/?api=1&query=Casasaga+1613+2nd+Block+Banashankari+6th+Stage+Bangalore+560061",
 };
 
@@ -56,7 +57,7 @@ export const policies = [
   { label: "Check-out", value: "Until 11:00 AM" },
   { label: "Cancellation", value: "Free up to 7 days before check-in" },
   { label: "Pets", value: "Not permitted" },
-  { label: "Smoking", value: "All suites are non-smoking" },
+  { label: "Smoking", value: "Not allowed indoors — ₹2,000 fine" },
 ];
 
 // Cancellation & Refund Policy page (managed in the admin panel: Contact & policies)
@@ -80,6 +81,35 @@ export const refundPolicy = [
   {
     title: "Booking Modifications",
     text: "Changes to booking dates or room types are subject to availability and may result in additional charges.",
+  },
+];
+
+
+// House Rules page (managed in the admin panel: Contact & policies)
+export const houseRules = [
+  {
+    title: "No Smoking Indoors",
+    text: "Smoking is strictly prohibited inside the room. Please use the balcony for smoking. A ₹2,000 fine will apply for smoking inside the room.",
+  },
+  {
+    title: "No Extra Guests or Visitors",
+    text: "Only guests included in the confirmed booking are permitted. Outside visitors and unregistered guests are not allowed.",
+  },
+  {
+    title: "No Loud Music",
+    text: "Please keep the noise to a minimum and respect the peace and privacy of others.",
+  },
+  {
+    title: "No Decorations on Walls",
+    text: "Sticking, taping, or hanging decorations on walls is strictly prohibited. Please do not damage the walls or interiors.",
+  },
+  {
+    title: "Damage Policy",
+    text: "Guests will be held responsible for any damage to the property's furniture, fixtures, furnishings, or other items. Applicable repair or replacement charges will be levied.",
+  },
+  {
+    title: "Respect the Property",
+    text: "Please treat the property with care and leave it in good condition.",
   },
 ];
 

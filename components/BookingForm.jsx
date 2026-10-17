@@ -3,10 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { addonPrice, formatINR, priceStay, taxNote } from "./content-helpers";
+import { addonPrice, formatINR, fullName, guestRules, nameParts, maxGuestsOf, priceStay, taxNote } from "./content-helpers";
 import { useContent } from "./ContentProvider";
 import { getSource, sendToBackend, useTakenSuites } from "./backend";
 import PinIcon from "./PinIcon";
+import { payWithRazorpay } from "./razorpay";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const nightsBetween = (a, b) => (a && b && b > a ? Math.round((new Date(b) - new Date(a)) / 86400000) : 0);
@@ -18,7 +19,7 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const STEPS = ["Dates & guests", "Choose your suite", "Enhance your stay", "Your details"];
 
 export default function BookingForm() {
-  const { addons, contact, getAddon, getSuite, locations, occasions, policies, pricing, suites } = useContent();
+  const { addons, contact, getAddon, getSuite, locations, occasions, onlinePayment, policies, pricing, suites } = useContent();
   const policy = (label) => policies.find((p) => p.label.toLowerCase() === label)?.value;
   const p = useSearchParams();
   const startAddon = getAddon(p.get("addon"));
@@ -26,7 +27,7 @@ export default function BookingForm() {
     suite: getSuite(p.get("suite")) ? p.get("suite") : "",
     in: p.get("in") || "",
     out: p.get("out") || "",
-    guests: ["1", "2", "3", "4"].includes(p.get("guests")) ? p.get("guests") : "2",
+    guests: /^([1-9]|10)$/.test(p.get("guests") || "") ? p.get("guests") : "2",
     addons: startAddon ? [startAddon.id] : [],
     name: "",
     phone: "",
@@ -42,6 +43,10 @@ export default function BookingForm() {
   const [done, setDone] = useState(null);
   const [sending, setSending] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  // Online payment: the booking waiting to be paid, and how paying is going
+  const [awaiting, setAwaiting] = useState(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState("");
   const [clash, setClash] = useState("");
   const [availKey, setAvailKey] = useState(0);
   const stepRefs = useRef([]);
@@ -65,16 +70,35 @@ export default function BookingForm() {
   // Every suite keeps its usual place; booked ones show greyed out as sold out
   const listedSuites = placeSuites;
   const locationName = (id) => locations.find((l) => l.id === id)?.name;
-  const suite = taken.has(form.suite) ? undefined : getSuite(form.suite);
-  const chosenAddons = form.addons.map(getAddon).filter(Boolean);
+  // A suite that takes fewer guests than chosen can't be picked (e.g. 3 at most at Banashankari 6th Stage)
+  const tooMany = (s) => Number(form.guests) > guestRules(s).max;
+  const maxGuests = maxGuestsOf(placeSuites.length ? placeSuites : suites);
+  const suite = taken.has(form.suite) || tooMany(getSuite(form.suite)) ? undefined : getSuite(form.suite);
+  // Add-ons are offered only at their locations (decorations: Banashankari 6th Stage); one picked
+  // earlier (e.g. from the home page) drops out of the bill while the chosen suite is elsewhere
+  const offeredAt = (a, s) => !a.locations?.length || (!!s && a.locations.includes(s.location));
+  const offeredAddons = addons.filter((a) => offeredAt(a, suite));
+  const addonPlaces = [...new Set(addons.flatMap((a) => a.locations || []))].map(locationName).filter(Boolean).join(" and ");
+  const chosenAddons = form.addons.map(getAddon).filter((a) => a && (!suite || offeredAt(a, suite)));
   const unpricedAddons = chosenAddons.some((a) => !a.price);
   // Base fee + add-ons + convenience fee + GST, calculated automatically
-  const bill = priceStay(pricing, suite, nights, chosenAddons);
+  const bill = priceStay(pricing, suite, nights, chosenAddons, form.guests);
   const total = bill.total;
 
   useEffect(() => {
-    if (form.suite && taken.has(form.suite)) setForm((f) => ({ ...f, suite: "" }));
-  }, [taken, form.suite]);
+    if (form.suite && (taken.has(form.suite) || tooMany(getSuite(form.suite)))) setForm((f) => ({ ...f, suite: "" }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taken, form.suite, form.guests]);
+
+  // The confirmation (or payment step) replaces the form — show it from the top of the page
+  useEffect(() => {
+    if (done || awaiting) window.scrollTo({ top: 0, behavior: "instant" });
+  }, [done, awaiting]);
+
+  // Choosing a location brings the guests down to the most its suites take
+  useEffect(() => {
+    if (Number(form.guests) > maxGuests) setForm((f) => ({ ...f, guests: String(maxGuests) }));
+  }, [maxGuests, form.guests]);
 
   // Bring the newly opened step into view
   useEffect(() => {
@@ -134,7 +158,7 @@ export default function BookingForm() {
 
   const summaries = [
     nights ? `${fmtShort(form.in)} → ${fmtShort(form.out)} · ${plural(nights, "night")} · ${plural(+form.guests, "guest")}` : "",
-    suite ? `${suite.name} Suite · ₹${formatINR(suite.price)}/night` : "",
+    suite ? `${fullName(suite.name)} · ₹${formatINR(suite.price)}/night` : "",
     chosenAddons.length ? chosenAddons.map((a) => a.title).join(", ") : "No add-ons",
     "",
   ];
@@ -170,7 +194,7 @@ export default function BookingForm() {
     setSending(false);
     if (res.status === 409) {
       // Someone else took the last room while the guest was filling in the form
-      setClash(`Sorry — the ${suite.name} Suite was just booked for these dates. Please choose another suite.`);
+      setClash(`Sorry — the ${fullName(suite.name)} was just booked for these dates. Please choose another suite.`);
       setForm((f) => ({ ...f, suite: "" }));
       setAvailKey((k) => k + 1);
       return goTo(1);
@@ -182,21 +206,99 @@ export default function BookingForm() {
           : res.message || `Something went wrong. Please try again, or call us on ${contact.phone}.`,
       );
     }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Online payment: the room is held while the guest pays in Razorpay Checkout
+    if (res.data.payment) {
+      setAwaiting(res.data);
+      return pay(res.data);
+    }
+    setDone(res.data);
+  };
+
+  const pay = async (booking) => {
+    setPaying(true);
+    setPayError("");
+    const result = await payWithRazorpay(booking.payment, {
+      description: `${fullName(booking.suiteName)} · ${plural(booking.nights, "night")} · ${booking.ref}`,
+      onFailedAttempt: (why) => setPayError(why ? `Payment didn't go through: ${why}` : "Payment didn't go through."),
+    });
+    if (!result.paid) {
+      setPaying(false);
+      if (result.reason === "unavailable") setPayError("We couldn't open the payment window. Check your internet connection and try again.");
+      return;
+    }
+    // Razorpay took the money — the API checks the reply is genuine and confirms the stay
+    const res = await sendToBackend(`bookings/${booking.ref}/pay`, result.response, { timeout: 20000 });
+    setPaying(false);
+    if (!res.ok) {
+      return setPayError(
+        res.message ||
+          `Your payment went through but we couldn't confirm it yet. Please don't pay again — call us on ${contact.phone} with booking ${booking.ref}.`,
+      );
+    }
+    setAwaiting(null);
     setDone(res.data);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const err = (k) => errors[k] && <em className="field-error">{errors[k]}</em>;
 
+  if (awaiting && !done) {
+    const holdUntil = awaiting.payment?.holdUntil ? new Date(awaiting.payment.holdUntil) : null;
+    return (
+      <motion.div className="form-success booking-done" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+        <p className="eyebrow">Booking {awaiting.ref}</p>
+        <h3>One last step — payment</h3>
+        <p className="muted">
+          Your {fullName(awaiting.suiteName)} is held for you
+          {holdUntil ? ` until ${holdUntil.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}` : ""}. Pay now to confirm
+          your stay.
+        </p>
+        <dl className="done-summary">
+          <div><dt>Stay</dt><dd>{fmtDate(awaiting.checkIn)} → {fmtDate(awaiting.checkOut)}</dd></div>
+          <div><dt>Guests</dt><dd>{awaiting.guests} · {plural(awaiting.nights, "night")}</dd></div>
+          <div className="done-total"><dt>To pay</dt><dd>₹{formatINR(awaiting.total)}</dd></div>
+        </dl>
+        {payError && <p className="avail-note warn" role="alert">{payError}</p>}
+        <div className="suite-actions">
+          <button type="button" className="btn btn-gold" onClick={() => pay(awaiting)} disabled={paying}>
+            {paying ? "Waiting for payment…" : `Pay ₹${formatINR(awaiting.total)}`}
+          </button>
+          <a href={`tel:${contact.tel}`} className="link-line">Need help? {contact.phone}</a>
+        </div>
+        <p className="muted small-note">Secure payment by Razorpay — UPI, cards, net banking and wallets.</p>
+      </motion.div>
+    );
+  }
+
   if (done) {
     return (
       <motion.div className="form-success booking-done" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-        <span className="success-mark">♥</span>
-        <p className="eyebrow">Booking {done.ref}</p>
+        <motion.span
+          className="done-check"
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.15 }}
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+          </svg>
+        </motion.span>
+        <p className="done-status">✓ Booking confirmed{done.paymentStatus === "paid" ? " · Paid" : ""}</p>
         <h3>You&apos;re booked, {form.name.split(" ")[0]}!</h3>
-        <p className="muted">Your stay is confirmed. Please keep your booking reference handy for check-in.</p>
+        <p className="muted">
+          {done.paymentStatus === "paid" ? "We've received your payment and your stay is confirmed." : "Your stay is confirmed."} We can&apos;t
+          wait to welcome you.
+        </p>
+        <div className="done-ref">
+          <span>Booking reference</span>
+          <strong>{done.ref}</strong>
+          <small>Please keep it handy for check-in</small>
+        </div>
         <dl className="done-summary">
-          <div><dt>Suite</dt><dd>{done.suiteName || suite?.name} Suite</dd></div>
+          <div><dt>{/Flat$/i.test(fullName(done.suiteName || suite?.name)) ? "Stay" : "Suite"}</dt><dd>{fullName(done.suiteName || suite?.name)}</dd></div>
+          {suite && locationName(suite.location) && <div><dt>Location</dt><dd>{locationName(suite.location)}</dd></div>}
           <div><dt>Check-in</dt><dd>{fmtDate(done.checkIn)}{policy("check-in") ? ` · ${policy("check-in")}` : ""}</dd></div>
           <div><dt>Check-out</dt><dd>{fmtDate(done.checkOut)}{policy("check-out") ? ` · ${policy("check-out")}` : ""}</dd></div>
           <div><dt>Guests</dt><dd>{done.guests} · {plural(done.nights, "night")}</dd></div>
@@ -204,6 +306,7 @@ export default function BookingForm() {
             <div><dt>Add-ons</dt><dd>{done.addonItems.map((a) => a.title).join(", ")}</dd></div>
           )}
           <div><dt>Base fee</dt><dd>₹{formatINR(done.roomTotal)}</dd></div>
+          {done.extraGuestTotal > 0 && <div><dt>Extra guest{done.extraGuests > 1 ? `s (${done.extraGuests})` : ""}</dt><dd>₹{formatINR(done.extraGuestTotal)}</dd></div>}
           {done.addonTotal > 0 && <div><dt>Add-ons</dt><dd>₹{formatINR(done.addonTotal)}</dd></div>}
           {done.taxAmount - (done.addonTaxAmount || 0) > 0 && (
             <div><dt>GST on stay ({done.taxRate}%)</dt><dd>₹{formatINR(done.taxAmount - (done.addonTaxAmount || 0))}</dd></div>
@@ -213,6 +316,7 @@ export default function BookingForm() {
             <div><dt>{pricing.convenienceFeeType === "percent" ? `Convenience fee (${pricing.convenienceFee}%)` : "Convenience fee"}</dt><dd>₹{formatINR(done.convenienceFee)}</dd></div>
           )}
           <div className="done-total"><dt>Total</dt><dd>₹{formatINR(done.total)}</dd></div>
+          {done.paymentStatus === "paid" && <div><dt>Paid online</dt><dd>₹{formatINR(done.amountPaid)} ✓</dd></div>}
         </dl>
         <p className="muted small-note">
           {done.addonItems?.some((a) => a.price == null) && "Our team will call you to agree the decoration price. "}
@@ -243,7 +347,7 @@ export default function BookingForm() {
         <label className="field">
           <span>Guests</span>
           <select value={form.guests} onChange={set("guests")}>
-            {[1, 2, 3, 4].map((n) => (
+            {Array.from({ length: maxGuests }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>{plural(n, "Guest")}</option>
             ))}
           </select>
@@ -284,6 +388,9 @@ export default function BookingForm() {
       )}
       {(checking ? [] : listedSuites).map((s) => {
         const soldOut = nights > 0 && taken.has(s.id);
+        const full = tooMany(s); // takes fewer guests than chosen
+        const rules = guestRules(s);
+        const stay = priceStay(pricing, s, nights, [], form.guests);
         const on = !soldOut && form.suite === s.id;
         return (
           <article
@@ -293,13 +400,13 @@ export default function BookingForm() {
             aria-disabled={soldOut || undefined}
           >
             <div className="rp-img">
-              <img src={s.img} alt={`${s.name} Suite`} />
+              <img src={s.img} alt={`${fullName(s.name)}`} />
               {on && <span className="rp-badge">Selected</span>}
               {soldOut && <span className="rp-sold">Sold out</span>}
             </div>
             <div className="rp-body">
-              <p className="suite-mood">{s.tag} · {s.mood}</p>
-              <h4>{s.name} <em>Suite</em></h4>
+              <p className="suite-mood">{fullName(s.name)}{s.mood ? ` · ${s.mood}` : ""}</p>
+              <h4>{nameParts(s.name)[0]} <em>{nameParts(s.name)[1]}</em></h4>
               <p className="loc-pill"><PinIcon /> {locationName(s.location)}</p>
               <p className="muted rp-blurb">{s.blurb}</p>
               <ul className="chip-list">
@@ -310,8 +417,21 @@ export default function BookingForm() {
               <a href={`/rooms/${s.id}`} target="_blank" rel="noopener" className="link-line rp-link">Photos & details</a>
             </div>
             <div className="rp-rate">
-              <strong>₹{formatINR(s.price)}</strong>
-              <small>per night {taxNote(pricing, s)}</small>
+              {/* Nightly price for the guests chosen: the base fee covers the included guests, each extra guest adds their charge */}
+              {(() => {
+                const extra = full ? 0 : Math.max(Number(form.guests) - rules.included, 0);
+                return (
+                  <>
+                    <strong>₹{formatINR(s.price + extra * rules.extraPrice)}</strong>
+                    <small>per night{full ? "" : ` for ${plural(Number(form.guests), "guest")}`} {taxNote(pricing, s)}</small>
+                    <small className="rp-guests">
+                      {extra > 0 && rules.extraPrice > 0
+                        ? `₹${formatINR(s.price)} for ${plural(rules.included, "guest")} + ₹${formatINR(extra * rules.extraPrice)} extra guest${extra > 1 ? `s (${extra})` : ""} · max ${rules.max}`
+                        : `Up to ${plural(rules.included, "guest")}${rules.max > rules.included && rules.extraPrice > 0 ? ` · extra guest ₹${formatINR(rules.extraPrice)}/night` : ""} · max ${rules.max}`}
+                    </small>
+                  </>
+                );
+              })()}
               {!soldOut && nights > 0 && roomsLeft[s.id] > 0 && (
                 <small className={`rp-left ${roomsLeft[s.id] <= 3 ? "low" : ""}`}>
                   {roomsLeft[s.id] <= 3
@@ -321,21 +441,24 @@ export default function BookingForm() {
               )}
               {soldOut ? (
                 <small className="rp-total rp-sold-note">Fully booked for your dates — try other dates</small>
+              ) : full ? (
+                <small className="rp-total rp-sold-note">Takes up to {plural(rules.max, "guest")} — choose fewer guests</small>
               ) : (
                 nights > 0 && (
                   <small className="rp-total">
-                    ₹{formatINR(priceStay(pricing, s, nights).total)} for {plural(nights, "night")}
-                    {priceStay(pricing, s, nights).convenienceFee > 0 ? " incl. GST & fees" : priceStay(pricing, s, nights).taxRate > 0 ? " incl. GST" : ""}
+                    ₹{formatINR(stay.total)} for {plural(nights, "night")}
+                    {stay.extraGuests > 0 && `, ${plural(Number(form.guests), "guest")}`}
+                    {stay.convenienceFee > 0 ? " incl. GST & fees" : stay.taxRate > 0 ? " incl. GST" : ""}
                   </small>
                 )
               )}
               <button
                 type="button"
                 className={`btn ${on ? "btn-gold" : "btn-ghost"}`}
-                onClick={() => !soldOut && chooseSuite(s.id)}
-                disabled={soldOut}
+                onClick={() => !soldOut && !full && chooseSuite(s.id)}
+                disabled={soldOut || full}
               >
-                {soldOut ? "Sold out" : on ? "Continue" : "Select"}
+                {soldOut ? "Sold out" : full ? `Max ${rules.max} guests` : on ? "Continue" : "Select"}
               </button>
             </div>
           </article>
@@ -346,10 +469,12 @@ export default function BookingForm() {
     // 3 — add-ons
     <>
       <p className="muted step-intro">
-        Celebrating something? Our team decorates your suite in-house before you arrive. Optional — pick any you like.
+        {offeredAddons.length
+          ? "Celebrating something? Our team decorates your suite in-house before you arrive. Optional — pick any you like."
+          : `Decoration add-ons aren't offered for ${suite ? `the ${fullName(suite.name)}` : "this stay"}${addonPlaces ? ` — they're available at ${addonPlaces}` : ""}. Continue to your details.`}
       </p>
       <div className="addon-pick">
-        {addons.map((a) => {
+        {offeredAddons.map((a) => {
           const on = form.addons.includes(a.id);
           return (
             <button type="button" key={a.id} className={`ap ${on ? "on" : ""}`} onClick={() => toggleAddon(a)} aria-pressed={on}>
@@ -409,10 +534,11 @@ export default function BookingForm() {
       {submitError && <p className="avail-note warn" role="alert">{submitError}</p>}
       <p className="muted form-note policy-agree">
         By confirming, you agree to our{" "}
+        <Link href="/house-rules" target="_blank" className="link-line">house rules</Link> and{" "}
         <Link href="/cancellation-policy" target="_blank" className="link-line">cancellation &amp; refund policy</Link>.
       </p>
       <div className="step-actions">
-        <button type="submit" className="btn btn-gold btn-lg" disabled={sending}>{sending ? "Confirming…" : "Confirm Booking"}</button>
+        <button type="submit" className="btn btn-gold btn-lg" disabled={sending}>{sending ? "Confirming…" : onlinePayment ? "Confirm & Pay" : "Confirm Booking"}</button>
       </div>
     </>,
   ];
@@ -468,7 +594,7 @@ export default function BookingForm() {
             <motion.img
               key={suite ? suite.img : "none"}
               src={suite ? suite.img : "/images/hero.jpg"}
-              alt={suite ? `${suite.name} Suite` : ""}
+              alt={suite ? `${fullName(suite.name)}` : ""}
               initial={{ opacity: 0, scale: 1.08 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
@@ -480,8 +606,8 @@ export default function BookingForm() {
           <p className="eyebrow">Your stay</p>
           {suite ? (
             <>
-              <p className="suite-mood" style={{ color: suite.accent }}>{suite.mood}</p>
-              <h3>{suite.name} <em>Suite</em></h3>
+              <p className="suite-mood" style={{ color: suite.accent }}>{fullName(suite.name)}{suite.mood ? ` · ${suite.mood}` : ""}</p>
+              <h3>{nameParts(suite.name)[0]} <em>{nameParts(suite.name)[1]}</em></h3>
               <p className="loc-pill"><PinIcon /> {locationName(suite.location)}</p>
             </>
           ) : (
@@ -495,6 +621,12 @@ export default function BookingForm() {
               <div className="dl-row">
                 <dt>Base fee · ₹{formatINR(suite.price)} × {plural(nights, "night")}</dt>
                 <dd>₹{formatINR(bill.roomTotal)}</dd>
+              </div>
+            )}
+            {bill.extraGuestTotal > 0 && (
+              <div className="dl-row">
+                <dt>Extra guest · ₹{formatINR(bill.extraGuestRate)} × {bill.extraGuests > 1 ? `${bill.extraGuests} × ` : ""}{plural(nights, "night")}</dt>
+                <dd>₹{formatINR(bill.extraGuestTotal)}</dd>
               </div>
             )}
             {chosenAddons.map((a) => (

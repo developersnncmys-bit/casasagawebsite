@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { nav } from "./data";
+import InstagramIcon, { instagramHandle } from "./InstagramIcon";
 import { getContent } from "@/lib/content";
 
 export default async function Footer() {
@@ -23,6 +24,7 @@ export default async function Footer() {
               <li key={n.href}><Link href={n.href}>{n.label}</Link></li>
             ))}
             <li><Link href="/booking">Booking</Link></li>
+            <li><Link href="/house-rules">House rules</Link></li>
             <li><Link href="/cancellation-policy">Cancellation &amp; refunds</Link></li>
           </ul>
         </div>
@@ -47,6 +49,11 @@ export default async function Footer() {
         <div>
           <h4>Talk to us</h4>
           <a className="footer-phone" href={`tel:${contact.tel}`}>{contact.phone}</a>
+          {contact.instagram && (
+            <a className="footer-ig" href={contact.instagram} target="_blank" rel="noopener noreferrer">
+              <InstagramIcon /> {instagramHandle(contact.instagram)}
+            </a>
+          )}
         </div>
       </div>
       <div className="footer-base">

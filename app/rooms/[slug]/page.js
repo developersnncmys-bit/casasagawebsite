@@ -4,7 +4,7 @@ import PageHero from "@/components/PageHero";
 import ParallaxImg from "@/components/ParallaxImg";
 import Reveal from "@/components/Reveal";
 import SuiteGallery from "@/components/SuiteGallery";
-import { findLocation, findSuite, formatINR, isVideo, suiteTax, taxNote } from "@/components/content-helpers";
+import { findLocation, findSuite, formatINR, fullName, guestRules, nameParts, isVideo, suiteTax, taxNote } from "@/components/content-helpers";
 import { getContent } from "@/lib/content";
 
 // Suites added later in the admin panel are rendered on first visit
@@ -18,7 +18,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const s = findSuite(await getContent(), slug);
-  return s ? { title: `${s.name} Suite`, description: s.blurb } : {};
+  return s ? { title: `${fullName(s.name)}`, description: s.blurb } : {};
 }
 
 export default async function SuitePage({ params }) {
@@ -33,7 +33,7 @@ export default async function SuitePage({ params }) {
 
   return (
     <div style={{ "--accent": s.accent }}>
-      <PageHero eyebrow={`${s.tag} · ${s.mood}`} title={s.name} accent="Suite" sub={s.blurb} img={photos[0] || s.img} />
+      <PageHero eyebrow={`${fullName(s.name)}${s.mood ? ` · ${s.mood}` : ""}`} title={nameParts(s.name)[0]} accent={nameParts(s.name)[1]} sub={s.blurb} img={photos[0] || s.img} />
 
       <section className="suite-detail">
         <div className="sd-main">
@@ -41,7 +41,7 @@ export default async function SuitePage({ params }) {
             <p className="eyebrow">The suite</p>
             <p className="sd-story">{s.story}</p>
           </Reveal>
-          <ParallaxImg src={photos[1] || photos[0] || s.img} alt={`${s.name} Suite`} className="sd-img" speed={14} />
+          <ParallaxImg src={photos[1] || photos[0] || s.img} alt={`${fullName(s.name)}`} className="sd-img" speed={14} />
           <Reveal>
             <h3 className="sd-h">In the suite</h3>
             <ul className="amenity-list">
@@ -53,7 +53,7 @@ export default async function SuitePage({ params }) {
         </div>
 
         <aside className="sd-card">
-          <p className="suite-mood">{s.tag}</p>
+          <p className="suite-mood">{fullName(s.name)}{s.mood ? ` · ${s.mood}` : ""}</p>
           <div className="room-price">
             ₹{formatINR(s.price)} <small>per night {taxNote(pricing, s)}</small>
           </div>
@@ -76,7 +76,10 @@ export default async function SuitePage({ params }) {
               ) : null;
             })()}
             {s.size && <div className="dl-row"><dt>Size</dt><dd>{s.size}</dd></div>}
-            {s.guests && <div className="dl-row"><dt>Occupancy</dt><dd>{s.guests}</dd></div>}
+            <div className="dl-row"><dt>Guests</dt><dd>{guestRules(s).max > guestRules(s).included ? `${guestRules(s).included} included · up to ${guestRules(s).max}` : `Up to ${guestRules(s).max}`}</dd></div>
+            {guestRules(s).extraPrice > 0 && guestRules(s).max > guestRules(s).included && (
+              <div className="dl-row"><dt>Extra guest</dt><dd>₹{formatINR(guestRules(s).extraPrice)} / night {taxNote(pricing, s)}</dd></div>
+            )}
             {suiteTax(pricing, s) > 0 && (
               <div className="dl-row"><dt>Per night incl. GST</dt><dd>₹{formatINR(Math.round(s.price * (1 + suiteTax(pricing, s) / 100)))}</dd></div>
             )}
@@ -96,6 +99,7 @@ export default async function SuitePage({ params }) {
             ))}
           </dl>
           <Link href={`/booking?suite=${s.id}`} className="btn btn-gold sd-btn">Reserve this suite</Link>
+          <Link href="/house-rules" className="link-line sd-rules">House rules</Link>
         </aside>
       </section>
 
@@ -120,10 +124,10 @@ export default async function SuitePage({ params }) {
           {others.map((o, i) => (
             <Reveal key={o.id} delay={i * 0.1}>
               <Link href={`/rooms/${o.id}`} className="other-card" data-hover style={{ "--accent": o.accent }}>
-                <ParallaxImg src={o.img} alt={`${o.name} Suite`} speed={10} />
+                <ParallaxImg src={o.img} alt={`${fullName(o.name)}`} speed={10} />
                 <div className="other-info">
-                  <span className="suite-mood">{o.mood}</span>
-                  <h3>{o.name} <em>Suite</em></h3>
+                  <span className="suite-mood">{fullName(o.name)}{o.mood ? ` · ${o.mood}` : ""}</span>
+                  <h3>{nameParts(o.name)[0]} <em>{nameParts(o.name)[1]}</em></h3>
                   <span>₹{formatINR(o.price)} / night {taxNote(pricing, o)} →</span>
                 </div>
               </Link>

@@ -3,11 +3,11 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import Lightbox from "./Lightbox";
 import { MediaThumb } from "./Media";
-import { isVideo } from "./content-helpers";
+import { fullName, isVideo } from "./content-helpers";
 
 export default function SuiteGallery({ images, name }) {
   const [index, setIndex] = useState(null);
-  const items = images.map((src, i) => ({ src, alt: `${name} Suite — ${isVideo(src) ? "video" : "photo"} ${i + 1}` }));
+  const items = images.map((src, i) => ({ src, alt: `${fullName(name)} — ${isVideo(src) ? "video" : "photo"} ${i + 1}` }));
   return (
     <>
       <div className="suite-gallery">

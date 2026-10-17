@@ -2,7 +2,7 @@ import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import ParallaxImg from "@/components/ParallaxImg";
 import Reveal from "@/components/Reveal";
-import { findLocation, formatINR, taxNote } from "@/components/content-helpers";
+import { findLocation, formatINR, fullName, nameParts, taxNote } from "@/components/content-helpers";
 import { getContent } from "@/lib/content";
 import PinIcon from "@/components/PinIcon";
 
@@ -54,14 +54,14 @@ export default async function RoomsPage({ searchParams }) {
         {suites.map((s, i) => (
           <article key={s.id} className={`room-row ${i % 2 ? "flip" : ""}`} style={{ "--accent": s.accent }}>
             <Link href={`/rooms/${s.id}`} className="room-media" data-hover>
-              <ParallaxImg src={s.img} alt={`${s.name} Suite`} speed={12} />
+              <ParallaxImg src={s.img} alt={`${fullName(s.name)}`} speed={12} />
               <span className="room-no">0{i + 1}</span>
             </Link>
             <Reveal className="room-info">
-              <p className="suite-mood">{s.tag} · {s.mood}</p>
+              <p className="suite-mood">{fullName(s.name)}{s.mood ? ` · ${s.mood}` : ""}</p>
               <p className="loc-pill"><PinIcon /> {findLocation(content, s.location)?.name}</p>
               <h2>
-                {s.name} <em>Suite</em>
+                {nameParts(s.name)[0]} <em>{nameParts(s.name)[1]}</em>
               </h2>
               <p className="muted">{s.blurb}</p>
               <ul className="chip-list">
@@ -97,7 +97,10 @@ export default async function RoomsPage({ searchParams }) {
             </Reveal>
           ))}
         </div>
-        <Link href="/cancellation-policy" className="link-line policy-link">Cancellation &amp; refund policy</Link>
+        <div className="policy-links">
+          <Link href="/house-rules" className="link-line">House rules</Link>
+          <Link href="/cancellation-policy" className="link-line">Cancellation &amp; refund policy</Link>
+        </div>
       </section>
     </>
   );
