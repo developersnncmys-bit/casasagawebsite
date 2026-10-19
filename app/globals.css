@@ -289,7 +289,9 @@ h2 em { color: var(--gold); }
 .footer ul { list-style: none; display: grid; gap: 0.5rem; }
 .footer ul a:hover, .footer-phone:hover { color: var(--gold); }
 .footer-phone { font-family: var(--serif); font-size: 1.6rem; }
-.footer-base { display: flex; justify-content: space-between; margin-top: 5rem; font-size: 0.8rem; color: var(--muted); }
+.footer-base { display: flex; justify-content: space-between; gap: 0.6rem 2rem; flex-wrap: wrap; margin-top: 5rem; font-size: 0.8rem; color: var(--muted); }
+.footer-credit { color: var(--gold-2); text-decoration: underline; text-underline-offset: 3px; }
+.footer-credit:hover { color: var(--gold); }
 
 /* responsive */
 @media (max-width: 960px) {

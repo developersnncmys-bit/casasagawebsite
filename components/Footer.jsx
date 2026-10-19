@@ -59,6 +59,12 @@ export default async function Footer() {
       <div className="footer-base">
         <span>© {new Date().getFullYear()} CasaSaga</span>
         <span>Crafted with love in Bangalore</span>
+        <span>
+          Designed &amp; developed by{" "}
+          <a href="https://www.nakshatranamahacreations.com/" target="_blank" rel="noopener" className="footer-credit">
+            Nakshatra Namaha Creations
+          </a>
+        </span>
       </div>
     </footer>
   );
