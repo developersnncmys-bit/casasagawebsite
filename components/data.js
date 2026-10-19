@@ -16,7 +16,7 @@ export const contact = {
   tel: "+917406565065",
   whatsapp: "917406565065",
   instagram: "https://www.instagram.com/casasaga_official/",
-  mapUrl: "https://www.google.com/maps/search/?api=1&query=Casasaga+1613+2nd+Block+Banashankari+6th+Stage+Bangalore+560061",
+  mapUrl: "https://maps.google.com/?cid=4137288655807854482",
 };
 
 // The two properties; each suite's `location` is one of these ids
@@ -25,8 +25,8 @@ export const locations = [
     id: "banashankari",
     name: "Banashankari 6th Stage",
     address: ["Casasaga 1613, 2nd Block", "Banashankari 6th Stage", "Bangalore 560061, Karnataka"],
-    mapUrl: "https://www.google.com/maps/search/?api=1&query=Casasaga+1613+2nd+Block+Banashankari+6th+Stage+Bangalore+560061",
-    mapQuery: "Banashankari 6th Stage, Bangalore 560061",
+    mapUrl: "https://maps.google.com/?cid=4137288655807854482",
+    mapQuery: "12.88972,77.512352",
   },
   {
     id: "jp-nagar",
