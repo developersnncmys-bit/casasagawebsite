@@ -4,7 +4,7 @@ import PageHero from "@/components/PageHero";
 import ParallaxImg from "@/components/ParallaxImg";
 import Reveal from "@/components/Reveal";
 import SuiteGallery from "@/components/SuiteGallery";
-import { findLocation, findSuite, formatINR, fullName, guestRules, nameParts, isVideo, suiteTax, taxNote } from "@/components/content-helpers";
+import { findLocation, findSuite, formatINR, fullName, guestRules, nameParts, isVideo, suiteOffer, suiteTax, taxNote } from "@/components/content-helpers";
 import { getContent } from "@/lib/content";
 
 // Suites added later in the admin panel are rendered on first visit
@@ -54,8 +54,10 @@ export default async function SuitePage({ params }) {
 
         <aside className="sd-card">
           <p className="suite-mood">{fullName(s.name)}{s.mood ? ` · ${s.mood}` : ""}</p>
+          {suiteOffer(s) && <span className="offer-badge">{suiteOffer(s).note}{suiteOffer(s).until ? ` · till ${suiteOffer(s).until.split("-").reverse().join("/")}` : ""}</span>}
           <div className="room-price">
-            ₹{formatINR(s.price)} <small>per night {taxNote(pricing, s)}</small>
+            {suiteOffer(s) && <s className="rp-was">₹{formatINR(s.price)}</s>}
+            ₹{formatINR(suiteOffer(s) ? suiteOffer(s).nightly : s.price)} <small>per night {taxNote(pricing, s)}</small>
           </div>
           <dl>
             {(() => {

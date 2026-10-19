@@ -2,7 +2,7 @@ import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import ParallaxImg from "@/components/ParallaxImg";
 import Reveal from "@/components/Reveal";
-import { findLocation, formatINR, fullName, nameParts, taxNote } from "@/components/content-helpers";
+import { findLocation, formatINR, fullName, nameParts, suiteOffer, taxNote } from "@/components/content-helpers";
 import { getContent } from "@/lib/content";
 import PinIcon from "@/components/PinIcon";
 
@@ -70,8 +70,10 @@ export default async function RoomsPage({ searchParams }) {
                 ))}
                 {s.size && <li>{s.size}</li>}
               </ul>
+              {suiteOffer(s) && <span className="offer-badge">{suiteOffer(s).note}</span>}
               <div className="room-price">
-                ₹{formatINR(s.price)} <small>per night {taxNote(pricing, s)}</small>
+                {suiteOffer(s) && <s className="rp-was">₹{formatINR(s.price)}</s>}
+                ₹{formatINR(suiteOffer(s) ? suiteOffer(s).nightly : s.price)} <small>per night {taxNote(pricing, s)}</small>
               </div>
               <div className="suite-actions">
                 <Link href={`/booking?suite=${s.id}`} className="btn btn-gold">Book Now</Link>

@@ -337,3 +337,4 @@ h2 em { color: var(--gold); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 .exp-where { display: block; margin: -0.4rem 0 1rem; font-size: 0.78rem; color: var(--muted); }
+.booking-price .offer-line { color: #8fd17a; }

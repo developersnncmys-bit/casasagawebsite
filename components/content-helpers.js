@@ -26,8 +26,31 @@ export const guestRules = (suite) => ({
 // The most guests any of these suites takes (for a guests dropdown)
 export const maxGuestsOf = (suites) => Math.max(1, ...suites.map((s) => guestRules(s).max));
 
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * A suite's offer while it runs: % off or ₹ off per night on the base fee. `checkIn` (or today)
+ * must be on or before discountUntil. Returns null when there's no offer.
+ */
+export function suiteOffer(suite, checkIn) {
+  const value = Number(suite?.discountValue) || 0;
+  if (!value || (suite.discountUntil && (checkIn || todayISO()) > suite.discountUntil)) return null;
+  const flat = suite.discountType === "flat";
+  const text = flat ? `₹${formatINR(value)} off per night` : `${value}% off`;
+  return {
+    flat,
+    value,
+    label: suite.discountLabel || "",
+    text,
+    note: suite.discountLabel ? `${suite.discountLabel} · ${text}` : text,
+    until: suite.discountUntil || "",
+    // The nightly price after the offer
+    nightly: Math.max(0, round2(flat ? suite.price - value : suite.price * (1 - Math.min(value, 100) / 100))),
+  };
+}
+
 // Same sums as the API (casasaga-adminpanel/backend/src/services/booking.service.js)
-export function priceStay(pricing, suite, nights, addons = [], guests = 2) {
+export function priceStay(pricing, suite, nights, addons = [], guests = 2, checkIn) {
   const p = pricing || {};
   const roomTotal = suite && nights > 0 ? round2(nights * suite.price) : 0;
   const rules = guestRules(suite);
@@ -35,17 +58,20 @@ export function priceStay(pricing, suite, nights, addons = [], guests = 2) {
   const extraGuestTotal = nights > 0 ? round2(nights * extraGuests * rules.extraPrice) : 0;
   const addonTotal = round2(addons.reduce((t, a) => t + (a.price || 0), 0));
   const taxRate = suite?.taxRate ?? p.taxRate ?? 0;
-  const stayTaxAmount = round2(((roomTotal + extraGuestTotal) * taxRate) / 100);
+  // The suite's offer comes off the base fee, before GST
+  const offer = suite && nights > 0 ? suiteOffer(suite, checkIn) : null;
+  const discount = offer ? round2(Math.min(roomTotal, offer.flat ? offer.value * nights : (roomTotal * Math.min(offer.value, 100)) / 100)) : 0;
+  const stayTaxAmount = round2((Math.max(roomTotal + extraGuestTotal - discount, 0) * taxRate) / 100);
   const addonTaxAmount = round2(addons.reduce((t, a) => t + ((a.price || 0) * addonTax(p, a)) / 100, 0));
   const addonTaxRates = [...new Set(addons.filter((a) => a.price).map((a) => addonTax(p, a)))];
   const taxAmount = round2(stayTaxAmount + addonTaxAmount);
-  const subtotal = round2(roomTotal + extraGuestTotal + addonTotal + taxAmount);
+  const subtotal = round2(Math.max(roomTotal + extraGuestTotal - discount, 0) + addonTotal + taxAmount);
   const convenienceFee = !roomTotal
     ? 0
     : round2(p.convenienceFeeType === "percent" ? (subtotal * (p.convenienceFee || 0)) / 100 : p.convenienceFee || 0);
   const feeLabel = p.convenienceFeeType === "percent" ? `Convenience fee (${p.convenienceFee}%)` : "Convenience fee";
   return {
-    roomTotal, extraGuests, extraGuestRate: rules.extraPrice, extraGuestTotal, addonTotal, taxRate, stayTaxAmount, addonTaxAmount, addonTaxRates, taxAmount, subtotal, convenienceFee, feeLabel,
+    roomTotal, discount, discountNote: discount > 0 ? offer.note : "", extraGuests, extraGuestRate: rules.extraPrice, extraGuestTotal, addonTotal, taxRate, stayTaxAmount, addonTaxAmount, addonTaxRates, taxAmount, subtotal, convenienceFee, feeLabel,
     total: round2(subtotal + convenienceFee),
   };
 }

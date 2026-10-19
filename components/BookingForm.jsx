@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { addonPrice, formatINR, fullName, guestRules, nameParts, maxGuestsOf, priceStay, taxNote } from "./content-helpers";
+import { addonPrice, formatINR, fullName, guestRules, nameParts, maxGuestsOf, priceStay, suiteOffer, taxNote } from "./content-helpers";
 import { useContent } from "./ContentProvider";
 import { getSource, sendToBackend, useTakenSuites } from "./backend";
 import PinIcon from "./PinIcon";
@@ -105,7 +105,7 @@ export default function BookingForm() {
   const chosenAddons = form.addons.map(getAddon).filter((a) => a && (!suite || offeredAt(a, suite)));
   const unpricedAddons = chosenAddons.some((a) => !a.price);
   // Base fee + add-ons + convenience fee + GST, calculated automatically
-  const bill = priceStay(pricing, suite, nights, chosenAddons, form.guests);
+  const bill = priceStay(pricing, suite, nights, chosenAddons, form.guests, form.in);
   const total = bill.total;
 
   useEffect(() => {
@@ -340,6 +340,7 @@ export default function BookingForm() {
           )}
           <div><dt>Base fee</dt><dd>₹{formatINR(done.roomTotal)}</dd></div>
           {done.extraGuestTotal > 0 && <div><dt>Extra guest{done.extraGuests > 1 ? `s (${done.extraGuests})` : ""}</dt><dd>₹{formatINR(done.extraGuestTotal)}</dd></div>}
+          {done.discount > 0 && <div className="dl-discount"><dt>Discount{done.discountNote ? ` · ${done.discountNote}` : ""}</dt><dd>− ₹{formatINR(done.discount)}</dd></div>}
           {done.addonTotal > 0 && <div><dt>Add-ons</dt><dd>₹{formatINR(done.addonTotal)}</dd></div>}
           {done.taxAmount - (done.addonTaxAmount || 0) > 0 && (
             <div><dt>GST on stay ({done.taxRate}%)</dt><dd>₹{formatINR(done.taxAmount - (done.addonTaxAmount || 0))}</dd></div>
@@ -423,7 +424,8 @@ export default function BookingForm() {
         const soldOut = nights > 0 && taken.has(s.id);
         const full = tooMany(s); // takes fewer guests than chosen
         const rules = guestRules(s);
-        const stay = priceStay(pricing, s, nights, [], form.guests);
+        const stay = priceStay(pricing, s, nights, [], form.guests, form.in);
+        const offer = suiteOffer(s, form.in);
         const on = !soldOut && form.suite === s.id;
         return (
           <article
@@ -455,7 +457,13 @@ export default function BookingForm() {
                 const extra = full ? 0 : Math.max(Number(form.guests) - rules.included, 0);
                 return (
                   <>
-                    <strong>₹{formatINR(s.price + extra * rules.extraPrice)}</strong>
+                    {offer && (
+                      <>
+                        <span className="offer-badge">{offer.label ? `${offer.label} · ` : ""}{offer.text}</span>
+                        <s className="rp-was">₹{formatINR(s.price + extra * rules.extraPrice)}</s>
+                      </>
+                    )}
+                    <strong>₹{formatINR((offer ? offer.nightly : s.price) + extra * rules.extraPrice)}</strong>
                     <small>per night{full ? "" : ` for ${plural(Number(form.guests), "guest")}`} {taxNote(pricing, s)}</small>
                     <small className="rp-guests">
                       {extra > 0 && rules.extraPrice > 0
@@ -661,6 +669,12 @@ export default function BookingForm() {
               <div className="dl-row">
                 <dt>Extra guest · ₹{formatINR(bill.extraGuestRate)} × {bill.extraGuests > 1 ? `${bill.extraGuests} × ` : ""}{plural(nights, "night")}</dt>
                 <dd>₹{formatINR(bill.extraGuestTotal)}</dd>
+              </div>
+            )}
+            {bill.discount > 0 && (
+              <div className="dl-row dl-discount">
+                <dt>Discount · {bill.discountNote}</dt>
+                <dd>− ₹{formatINR(bill.discount)}</dd>
               </div>
             )}
             {chosenAddons.map((a) => (

@@ -133,7 +133,7 @@ export const suites = [
     price: 12499,
     img: "/images/tulum.jpg",
     accent: "#c98b5e",
-    size: "65 sq. m.",
+    size: "700 sq ft",
     guests: "2 guests",
     blurb:
       "Rattan, linen and warm earth tones wrapped around a sunken private jacuzzi — a slow, sun-drenched escape without leaving the city.",
