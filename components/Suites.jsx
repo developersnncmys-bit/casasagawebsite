@@ -2,7 +2,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { findLocation, formatINR, fullName, nameParts, suiteOffer, taxNote } from "./content-helpers";
+import { findLocation, formatINR, fullName, nameParts, taxNote } from "./content-helpers";
 import { useContent } from "./ContentProvider";
 import PinIcon from "./PinIcon";
 
@@ -27,10 +27,8 @@ function SuiteCard({ s, i, pricing, location }) {
         <motion.img src={s.img} alt={`${fullName(s.name)}`} style={{ y: imgY }} />
         <span className="suite-index">0{i + 1}</span>
         <span className="suite-price">
-          {suiteOffer(s) && <s className="suite-was">₹{formatINR(s.price)}</s>}
-          ₹{formatINR(suiteOffer(s) ? suiteOffer(s).nightly : s.price)}<small>/night {taxNote(pricing, s)}</small>
+          ₹{formatINR(s.price)}<small>/night {taxNote(pricing, s)}</small>
         </span>
-        {suiteOffer(s) && <span className="suite-offer">{suiteOffer(s).note}</span>}
       </Link>
       <div className="suite-body">
         <p className="suite-mood">{fullName(s.name)}{s.mood ? ` · ${s.mood}` : ""}</p>

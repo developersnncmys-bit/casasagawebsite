@@ -50,7 +50,7 @@ export default function BookingBar() {
       ? null
       : suitesAt(form.location)
           .filter((s) => (rooms ? s.id === form.suite : guestRules(s).max >= guests))
-          .map((s) => ({ ...priceStay(pricing, s, nights || 1, [], guests, form.in), suite: s }))
+          .map((s) => ({ ...priceStay(pricing, { ...s, discountValue: 0 }, nights || 1, [], guests, form.in), suite: s }))
           .sort((a, b) => a.total - b.total)[0];
 
   const submit = (e) => {
@@ -114,14 +114,12 @@ export default function BookingBar() {
               <strong>₹{formatINR(quote.total)}</strong> for {plural(nights, "night")}
               {rooms ? `, ${fullName(quote.suite.name)} (${plural(guests, "guest")})` : `, ${plural(guests, "guest")}`}
               {quote.convenienceFee > 0 ? " · incl. GST & fees" : quote.taxRate > 0 ? " · incl. GST" : ""}
-              {quote.discount > 0 && <span className="offer-line"> · {quote.discountNote} applied</span>}
             </>
           ) : (
             // One night: the base fee (covers the included guests) + each extra guest + GST = the total
             <>
               ₹{formatINR(quote.roomTotal)} / night {rooms ? `· ${fullName(quote.suite.name)}` : ""} for {plural(quote.extraGuestTotal > 0 ? guests - quote.extraGuests : guests, "guest")}
               {quote.extraGuestTotal > 0 && ` + ₹${formatINR(quote.extraGuestTotal)} extra guest${quote.extraGuests > 1 ? `s (${quote.extraGuests})` : ""}`}
-              {quote.discount > 0 && <span className="offer-line"> − ₹{formatINR(quote.discount)} ({quote.discountNote})</span>}
               {quote.taxRate > 0 && ` + ${quote.taxRate}% GST`} = <strong>₹{formatINR(quote.subtotal)}</strong> / night
               {quote.extraGuestTotal > 0 ? ` for ${plural(guests, "guest")}` : ""}
             </>
