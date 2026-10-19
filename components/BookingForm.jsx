@@ -8,10 +8,25 @@ import { useContent } from "./ContentProvider";
 import { getSource, sendToBackend, useTakenSuites } from "./backend";
 import PinIcon from "./PinIcon";
 import { payWithRazorpay } from "./razorpay";
+import DateInput from "./DateInput";
 import { checkEmail, checkName, checkPhone, checkText, collect } from "./validate";
 
 // Longest stay the website books (longer ones by phone)
 const MAX_NIGHTS = 30;
+
+// What each box accepts as you type: the mobile number keeps digits only (a pasted +91 / 0 is
+// dropped, at most 10 digits); the name keeps letters, spaces and . ' -
+const CLEAN = {
+  phone: (v) => v.replace(/\D/g, "").replace(/^(91|0)(?=\d{10})/, "").slice(0, 10),
+  name: (v) => v.replace(/[^\p{L}\p{M} .'-]/gu, "").replace(/\s{2,}/g, " ").slice(0, 80),
+  email: (v) => v.replace(/\s/g, "").slice(0, 160),
+};
+const FIELD_CHECK = {
+  name: (v) => checkName(v, "name"),
+  phone: (v) => checkPhone(v),
+  email: (v) => checkEmail(v, { required: true }) && "Please enter a valid email — we'll send your booking confirmation there.",
+  notes: (v) => checkText(v, { max: 500, label: "special requests" }),
+};
 
 const today = () => new Date().toISOString().slice(0, 10);
 const nightsBetween = (a, b) => (a && b && b > a ? Math.round((new Date(b) - new Date(a)) / 86400000) : 0);
@@ -57,9 +72,13 @@ export default function BookingForm() {
   const first = useRef(true);
 
   const set = (k) => (e) => {
-    setForm({ ...form, [k]: e.target.value });
-    setErrors({ ...errors, [k]: undefined });
+    const value = CLEAN[k] ? CLEAN[k](e.target.value) : e.target.value;
+    setForm({ ...form, [k]: value });
+    // A field already showing an error is re-checked as it's corrected
+    setErrors({ ...errors, [k]: errors[k] && FIELD_CHECK[k] ? FIELD_CHECK[k](value) || undefined : undefined });
   };
+  // Leaving a field shows its problem straight away
+  const check = (k) => () => FIELD_CHECK[k] && setErrors((er) => ({ ...er, [k]: FIELD_CHECK[k](form[k]) || undefined }));
   const nights = nightsBetween(form.in, form.out);
   // Suites already booked for these dates aren't offered
   const { loading: checking, taken, free: roomsLeft } = useTakenSuites(nights > 0 ? form.in : "", nights > 0 ? form.out : "", availKey);
@@ -139,11 +158,11 @@ export default function BookingForm() {
     }
     if (i === 3) {
       err = collect({
-        name: checkName(form.name, "name"),
-        phone: checkPhone(form.phone),
+        name: FIELD_CHECK.name(form.name),
+        phone: FIELD_CHECK.phone(form.phone),
         // Required: the booking confirmation is emailed
-        email: checkEmail(form.email, { required: true }) && "Please enter a valid email — we'll send your booking confirmation there.",
-        notes: checkText(form.notes, { max: 500, label: "special requests" }),
+        email: FIELD_CHECK.email(form.email),
+        notes: FIELD_CHECK.notes(form.notes),
       });
     }
     setErrors(err);
@@ -350,12 +369,12 @@ export default function BookingForm() {
       <div className="form-row three">
         <label className={`field ${errors.in ? "has-error" : ""}`}>
           <span>Check-in *</span>
-          <input type="date" min={today()} value={form.in} onChange={set("in")} />
+          <DateInput min={today()} value={form.in} onChange={set("in")} />
           {err("in")}
         </label>
         <label className={`field ${errors.out ? "has-error" : ""}`}>
           <span>Check-out *</span>
-          <input type="date" min={form.in || today()} value={form.out} onChange={set("out")} />
+          <DateInput min={form.in || today()} value={form.out} onChange={set("out")} />
           {err("out")}
         </label>
         <label className="field">
@@ -517,19 +536,19 @@ export default function BookingForm() {
       <div className="form-row">
         <label className={`field ${errors.name ? "has-error" : ""}`}>
           <span>Full name *</span>
-          <input value={form.name} onChange={set("name")} autoComplete="name" maxLength={80} />
+          <input value={form.name} onChange={set("name")} onBlur={check("name")} autoComplete="name" maxLength={80} />
           {err("name")}
         </label>
         <label className={`field ${errors.phone ? "has-error" : ""}`}>
           <span>Phone *</span>
-          <input type="tel" inputMode="tel" value={form.phone} onChange={set("phone")} autoComplete="tel" maxLength={16} placeholder="10-digit mobile number" />
+          <input type="tel" inputMode="numeric" value={form.phone} onChange={set("phone")} onBlur={check("phone")} autoComplete="tel-national" placeholder="10-digit mobile number" />
           {err("phone")}
         </label>
       </div>
       <div className="form-row">
         <label className={`field ${errors.email ? "has-error" : ""}`}>
           <span>Email * <small className="field-note">— your confirmation is sent here</small></span>
-          <input type="email" value={form.email} onChange={set("email")} autoComplete="email" maxLength={160} required />
+          <input type="email" value={form.email} onChange={set("email")} onBlur={check("email")} autoComplete="email" maxLength={160} required />
           {err("email")}
         </label>
         <label className="field">

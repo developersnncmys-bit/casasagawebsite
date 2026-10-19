@@ -569,3 +569,16 @@ button.link-line { background: none; border: 0; color: var(--ink); font-family: 
 .sd-rules { align-self: center; margin-top: 0.4rem; }
 .field-note { text-transform: none; letter-spacing: 0; font-size: 0.78rem; color: var(--muted); font-weight: 400; }
 .done-mailed { font-size: 0.9rem; } .done-mailed strong { color: var(--ink); font-weight: 500; }
+
+/* date boxes that read dd/mm/yyyy (components/DateInput.jsx) */
+.date-input { position: relative; display: block; font: inherit; color: inherit; letter-spacing: normal; text-transform: none; }
+.date-input input { width: 100%; color: transparent; cursor: pointer; }
+.date-input input::-webkit-datetime-edit { color: transparent; }
+.date-input input::-webkit-calendar-picker-indicator { cursor: pointer; }
+.date-input .date-shown {
+  position: absolute; left: var(--date-pad, 1.1rem); top: 50%; transform: translateY(-50%); pointer-events: none;
+  font: 400 1rem var(--sans); letter-spacing: 0.02em; text-transform: none; color: var(--ink); white-space: nowrap;
+}
+.date-input.is-empty .date-shown { color: var(--muted); }
+.booking .date-input { --date-pad: 0; }
+.booking .date-input .date-shown { font: 500 0.95rem var(--sans); }

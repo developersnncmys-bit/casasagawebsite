@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useContent } from "./ContentProvider";
+import DateInput from "./DateInput";
 import { formatINR, fullName, guestRules, maxGuestsOf, priceStay } from "./content-helpers";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -78,11 +79,11 @@ export default function BookingBar() {
       )}
       <label>
         <span>Check-in</span>
-        <input type="date" min={today()} value={form.in} onChange={set("in")} />
+        <DateInput min={today()} value={form.in} onChange={set("in")} />
       </label>
       <label>
         <span>Check-out</span>
-        <input type="date" min={form.in || today()} value={form.out} onChange={set("out")} />
+        <DateInput min={form.in || today()} value={form.out} onChange={set("out")} />
       </label>
       {rooms ? (
         <label>
