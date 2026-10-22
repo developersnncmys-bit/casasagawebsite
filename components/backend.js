@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 // Talks to the CasaSaga API so bookings appear in the admin panel
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://casasagabackend.vercel.app").replace(/\/$/, "");
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.casasaga.in").replace(/\/$/, "");
 
 /**
  * POSTs a form to the API. Never throws: resolves to { ok, status, message, data }.
