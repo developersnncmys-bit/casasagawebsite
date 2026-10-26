@@ -5,7 +5,12 @@ import { useContent } from "./ContentProvider";
 import DateInput from "./DateInput";
 import { formatINR, fullName, guestRules, maxGuestsOf, priceStay } from "./content-helpers";
 
-const today = () => new Date().toISOString().slice(0, 10);
+// Dates as YYYY-MM-DD in the visitor's own time (India), not UTC
+const today = () => {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+const dayAfter = (iso) => new Date(new Date(iso + "T00:00:00Z").getTime() + 86400000).toISOString().slice(0, 10);
 const nightsBetween = (a, b) => (a && b && b > a ? Math.round((new Date(b) - new Date(a)) / 86400000) : 0);
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
@@ -24,6 +29,8 @@ export default function BookingBar() {
   const set = (k) => (e) => {
     setMsg("");
     const next = { ...form, [k]: e.target.value };
+    // A check-in on or after the check-out clears the check-out, to be picked again
+    if (k === "in" && next.out && next.out <= next.in) next.out = "";
     if (k === "location") {
       if (byRoom(next.location)) {
         // Start with the smallest room type; its guests come with it
@@ -83,7 +90,7 @@ export default function BookingBar() {
       </label>
       <label>
         <span>Check-out</span>
-        <DateInput min={form.in || today()} value={form.out} onChange={set("out")} />
+        <DateInput min={dayAfter(form.in || today())} value={form.out} onChange={set("out")} />
       </label>
       {rooms ? (
         <label>

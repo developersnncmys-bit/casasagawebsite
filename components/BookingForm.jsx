@@ -28,7 +28,12 @@ const FIELD_CHECK = {
   notes: (v) => checkText(v, { max: 500, label: "special requests" }),
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+// Dates as YYYY-MM-DD in the visitor's own time (India), not UTC
+const today = () => {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+const dayAfter = (iso) => new Date(new Date(iso + "T00:00:00Z").getTime() + 86400000).toISOString().slice(0, 10);
 const nightsBetween = (a, b) => (a && b && b > a ? Math.round((new Date(b) - new Date(a)) / 86400000) : 0);
 const fmtDate = (d) =>
   new Date(d + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
@@ -73,7 +78,8 @@ export default function BookingForm() {
 
   const set = (k) => (e) => {
     const value = CLEAN[k] ? CLEAN[k](e.target.value) : e.target.value;
-    setForm({ ...form, [k]: value });
+    // A check-in on or after the check-out clears the check-out, to be picked again
+    setForm({ ...form, [k]: value, ...(k === "in" && form.out && form.out <= value ? { out: "" } : {}) });
     // A field already showing an error is re-checked as it's corrected
     setErrors({ ...errors, [k]: errors[k] && FIELD_CHECK[k] ? FIELD_CHECK[k](value) || undefined : undefined });
   };
@@ -375,7 +381,7 @@ export default function BookingForm() {
         </label>
         <label className={`field ${errors.out ? "has-error" : ""}`}>
           <span>Check-out *</span>
-          <DateInput min={form.in || today()} value={form.out} onChange={set("out")} />
+          <DateInput min={dayAfter(form.in || today())} value={form.out} onChange={set("out")} />
           {err("out")}
         </label>
         <label className="field">
