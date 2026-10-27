@@ -39,12 +39,20 @@ const fmtDate = (d) =>
   new Date(d + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 const fmtShort = (d) => new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+// "14:00" → "2:00 PM"
+const fmtTime = (t) => {
+  const [h, m] = t.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+};
 
 const STEPS = ["Dates & guests", "Choose your suite", "Enhance your stay", "Your details"];
 
 export default function BookingForm() {
   const { addons, contact, getAddon, getSuite, locations, occasions, onlinePayment, policies, pricing, suites } = useContent();
   const policy = (label) => policies.find((p) => p.label.toLowerCase() === label)?.value;
+  // Check-in / check-out times set for the suite in the admin panel, else the general policy
+  const timeIn = (s) => (s?.checkInTime ? `From ${fmtTime(s.checkInTime)}` : policy("check-in") || "");
+  const timeOut = (s) => (s?.checkOutTime ? `By ${fmtTime(s.checkOutTime)}` : policy("check-out") || "");
   const p = useSearchParams();
   const startAddon = getAddon(p.get("addon"));
   const [form, setForm] = useState({
@@ -110,6 +118,11 @@ export default function BookingForm() {
   const addonPlaces = [...new Set(addons.flatMap((a) => a.locations || []))].map(locationName).filter(Boolean).join(" and ");
   const chosenAddons = form.addons.map(getAddon).filter((a) => a && (!suite || offeredAt(a, suite)));
   const unpricedAddons = chosenAddons.some((a) => !a.price);
+  // Decor and occasion requests are taken only where add-ons are offered (Banashankari 6th Stage):
+  // elsewhere the "Enhance your stay" step and the occasion / special requests boxes are left out
+  const hasExtras = (s) => !s || addons.some((a) => offeredAt(a, s));
+  const extras = hasExtras(suite);
+  const shownSteps = STEPS.map((title, i) => ({ title, i })).filter((s) => s.i !== 2 || extras);
   // Base fee + add-ons + convenience fee + GST, calculated automatically
   const bill = priceStay(pricing, suite, nights, chosenAddons, form.guests, form.in);
   const total = bill.total;
@@ -180,7 +193,7 @@ export default function BookingForm() {
   const chooseSuite = (id) => {
     setClash("");
     setForm({ ...form, suite: id });
-    goTo(2);
+    goTo(hasExtras(getSuite(id)) ? 2 : 3);
   };
 
   const toggleAddon = (a) => {
@@ -221,8 +234,8 @@ export default function BookingForm() {
       name: form.name,
       phone: form.phone,
       email: form.email,
-      occasion: form.occasion,
-      notes: form.notes,
+      occasion: extras ? form.occasion : "",
+      notes: extras ? form.notes : "",
       // Instagram, Facebook, Google… — shown as the booking's source in the admin panel
       source: getSource(),
     });
@@ -292,7 +305,8 @@ export default function BookingForm() {
           your stay.
         </p>
         <dl className="done-summary">
-          <div><dt>Stay</dt><dd>{fmtDate(awaiting.checkIn)} → {fmtDate(awaiting.checkOut)}</dd></div>
+          <div><dt>Check-in</dt><dd>{fmtDate(awaiting.checkIn)}{timeIn(getSuite(form.suite)) ? ` · ${timeIn(getSuite(form.suite))}` : ""}</dd></div>
+          <div><dt>Check-out</dt><dd>{fmtDate(awaiting.checkOut)}{timeOut(getSuite(form.suite)) ? ` · ${timeOut(getSuite(form.suite))}` : ""}</dd></div>
           <div><dt>Guests</dt><dd>{awaiting.guests} · {plural(awaiting.nights, "night")}</dd></div>
           {toPay !== awaiting.total && <div><dt>Total</dt><dd>₹{formatINR(awaiting.total)}</dd></div>}
           <div className="done-total"><dt>{toPay !== awaiting.total ? "To pay now (test)" : "To pay"}</dt><dd>₹{formatINR(toPay)}</dd></div>
@@ -338,8 +352,8 @@ export default function BookingForm() {
         <dl className="done-summary">
           <div><dt>{/Flat$/i.test(fullName(done.suiteName || suite?.name)) ? "Stay" : "Suite"}</dt><dd>{fullName(done.suiteName || suite?.name)}</dd></div>
           {suite && locationName(suite.location) && <div><dt>Location</dt><dd>{locationName(suite.location)}</dd></div>}
-          <div><dt>Check-in</dt><dd>{fmtDate(done.checkIn)}{policy("check-in") ? ` · ${policy("check-in")}` : ""}</dd></div>
-          <div><dt>Check-out</dt><dd>{fmtDate(done.checkOut)}{policy("check-out") ? ` · ${policy("check-out")}` : ""}</dd></div>
+          <div><dt>Check-in</dt><dd>{fmtDate(done.checkIn)}{timeIn(getSuite(form.suite)) ? ` · ${timeIn(getSuite(form.suite))}` : ""}</dd></div>
+          <div><dt>Check-out</dt><dd>{fmtDate(done.checkOut)}{timeOut(getSuite(form.suite)) ? ` · ${timeOut(getSuite(form.suite))}` : ""}</dd></div>
           <div><dt>Guests</dt><dd>{done.guests} · {plural(done.nights, "night")}</dd></div>
           {done.addonItems?.length > 0 && (
             <div><dt>Add-ons</dt><dd>{done.addonItems.map((a) => a.title).join(", ")}</dd></div>
@@ -565,20 +579,24 @@ export default function BookingForm() {
           <input type="email" value={form.email} onChange={set("email")} onBlur={check("email")} autoComplete="email" maxLength={160} required />
           {err("email")}
         </label>
-        <label className="field">
-          <span>Occasion</span>
-          <select value={form.occasion} onChange={set("occasion")}>
-            {occasions.map((o) => (
-              <option key={o}>{o}</option>
-            ))}
-          </select>
-        </label>
+        {extras && (
+          <label className="field">
+            <span>Occasion</span>
+            <select value={form.occasion} onChange={set("occasion")}>
+              {occasions.map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
-      <label className={`field ${errors.notes ? "has-error" : ""}`}>
-        <span>Special requests</span>
-        <textarea rows={4} value={form.notes} onChange={set("notes")} placeholder="Decoration theme or colours, cake message, arrival time…" maxLength={500} />
-        {err("notes")}
-      </label>
+      {extras && (
+        <label className={`field ${errors.notes ? "has-error" : ""}`}>
+          <span>Special requests</span>
+          <textarea rows={4} value={form.notes} onChange={set("notes")} placeholder="Decoration theme or colours, cake message, arrival time…" maxLength={500} />
+          {err("notes")}
+        </label>
+      )}
       {submitError && <p className="avail-note warn" role="alert">{submitError}</p>}
       <p className="muted form-note policy-agree">
         By confirming, you agree to our{" "}
@@ -595,20 +613,20 @@ export default function BookingForm() {
     <form className="booking-page" onSubmit={submit} noValidate>
       <div className="bp-main">
         <ol className="stepper" aria-label="Booking steps">
-          {STEPS.map((t, i) => (
+          {shownSteps.map(({ title: t, i }, n) => (
             <li key={t} className={i === step ? "now" : i < step || i <= reached ? "done" : ""}>
-              <span>{i + 1}</span> {t}
+              <span>{n + 1}</span> {t}
             </li>
           ))}
         </ol>
 
-        {STEPS.map((title, i) => {
+        {shownSteps.map(({ title, i }, n) => {
           const open = i === step;
           const canOpen = !open && i <= reached && (i < 2 || suite);
           return (
             <section key={title} ref={(el) => (stepRefs.current[i] = el)} className={`bstep ${open ? "open" : ""} ${i > reached ? "locked" : ""}`}>
               <header className="bstep-head">
-                <span className="bstep-no">{i < step || (i <= reached && !open) ? "✓" : i + 1}</span>
+                <span className="bstep-no">{i < step || (i <= reached && !open) ? "✓" : n + 1}</span>
                 <div>
                   <h3>{title}</h3>
                   {!open && i <= reached && summaries[i] && <p className="bstep-sum">{summaries[i]}</p>}
@@ -662,8 +680,14 @@ export default function BookingForm() {
             <h3>Choose a <em>suite</em></h3>
           )}
           <dl>
-            <div className="dl-row"><dt>Check-in</dt><dd>{form.in ? fmtDate(form.in) : "—"}</dd></div>
-            <div className="dl-row"><dt>Check-out</dt><dd>{form.out ? fmtDate(form.out) : "—"}</dd></div>
+            <div className="dl-row">
+              <dt>Check-in</dt>
+              <dd>{form.in ? fmtDate(form.in) : "—"}{timeIn(suite) && <small className="dl-time">{timeIn(suite)}</small>}</dd>
+            </div>
+            <div className="dl-row">
+              <dt>Check-out</dt>
+              <dd>{form.out ? fmtDate(form.out) : "—"}{timeOut(suite) && <small className="dl-time">{timeOut(suite)}</small>}</dd>
+            </div>
             <div className="dl-row"><dt>Guests</dt><dd>{form.guests}</dd></div>
             {suite && nights > 0 && (
               <div className="dl-row">

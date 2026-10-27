@@ -591,3 +591,5 @@ button.link-line { background: none; border: 0; color: var(--ink); font-family: 
 .room-price .rp-was { display: inline; margin-right: 0.4rem; font-size: 0.55em; }
 .suite-was { margin-right: 0.35rem; font-size: 0.8em; font-weight: 400; opacity: 0.7; }
 .suite-offer { position: absolute; top: 1.2rem; right: 1.2rem; z-index: 2; padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; color: #12230f; background: #8fd17a; }
+/* the suite's check-in / check-out time under the date in the booking summary */
+.dl-time { display: block; font-size: 0.78rem; color: var(--gold); margin-top: 0.15rem; }
