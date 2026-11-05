@@ -25,6 +25,22 @@ export async function sendToBackend(path, body, { timeout = 10000 } = {}) {
 }
 
 /**
+ * The booking as the API has it now — the API asks Razorpay when it's still waiting for payment.
+ * Resolves to the booking, or null when it can't be reached.
+ */
+export async function checkPayment(ref, orderId) {
+  try {
+    const res = await fetch(`${API_URL}/api/public/bookings/${encodeURIComponent(ref)}/payment?order=${encodeURIComponent(orderId)}`, {
+      signal: AbortSignal.timeout(15000),
+    });
+    const json = await res.json().catch(() => ({}));
+    return res.ok ? json.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Which suites are fully booked for [checkIn, checkOut), and how many rooms each has left.
  * If the API can't be reached every suite is offered — the team confirms on WhatsApp anyway.
  */

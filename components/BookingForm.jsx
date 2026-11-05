@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { addonPrice, formatINR, fullName, guestRules, nameParts, maxGuestsOf, priceStay, suiteOffer, taxNote } from "./content-helpers";
 import { useContent } from "./ContentProvider";
-import { getSource, sendToBackend, useTakenSuites } from "./backend";
+import { checkPayment, getSource, sendToBackend, useTakenSuites } from "./backend";
 import PinIcon from "./PinIcon";
 import { payWithRazorpay } from "./razorpay";
 import DateInput from "./DateInput";
@@ -13,6 +13,8 @@ import { checkEmail, checkName, checkPhone, checkText, collect } from "./validat
 
 // Longest stay the website books (longer ones by phone)
 const MAX_NIGHTS = 30;
+// The booking being paid for in this visit (sessionStorage), picked up again after a reload
+const PAYING_KEY = "cs_paying";
 
 // What each box accepts as you type: the mobile number keeps digits only (a pasted +91 / 0 is
 // dropped, at most 10 digits); the name keeps letters, spaces and . ' -
@@ -79,6 +81,7 @@ export default function BookingForm() {
   const [awaiting, setAwaiting] = useState(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState("");
+  const closeCheckout = useRef(null);
   const [clash, setClash] = useState("");
   const [availKey, setAvailKey] = useState(0);
   const stepRefs = useRef([]);
@@ -136,6 +139,69 @@ export default function BookingForm() {
   useEffect(() => {
     if (done || awaiting) window.scrollTo({ top: 0, behavior: "instant" });
   }, [done, awaiting]);
+
+  // Paying in a UPI app can lose Checkout's reply (the phone switches apps, or reloads this page).
+  // While a booking waits for payment, ask the API every few seconds and whenever the guest comes
+  // back to this tab — it checks with Razorpay and the confirmation shows as soon as it's paid.
+  useEffect(() => {
+    const order = awaiting?.payment?.orderId;
+    if (!order || done) return;
+    let live = true;
+    const started = Date.now();
+    const look = async () => {
+      if (Date.now() - started > 30 * 60000) return clearInterval(timer);
+      const b = await checkPayment(awaiting.ref, order);
+      if (!live || b?.paymentStatus !== "paid") return;
+      closeCheckout.current?.();
+      setPaying(false);
+      setPayError("");
+      setAwaiting(null);
+      setDone(b);
+    };
+    const timer = setInterval(look, 6000);
+    const onBack = () => document.visibilityState === "visible" && look();
+    document.addEventListener("visibilitychange", onBack);
+    window.addEventListener("focus", onBack);
+    return () => {
+      live = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onBack);
+      window.removeEventListener("focus", onBack);
+    };
+  }, [awaiting, done]);
+
+  // Remember the booking being paid for this visit, so a reload (common after a UPI app) can pick it up
+  useEffect(() => {
+    try {
+      if (awaiting && !done) sessionStorage.setItem(PAYING_KEY, JSON.stringify({ awaiting, name: form.name, email: form.email, suite: form.suite }));
+      else if (done) sessionStorage.removeItem(PAYING_KEY);
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaiting, done]);
+
+  // Back on the booking page after a reload: show the confirmation if it was paid, else the payment step
+  useEffect(() => {
+    let saved;
+    try {
+      saved = JSON.parse(sessionStorage.getItem(PAYING_KEY) || "null");
+    } catch {}
+    const order = saved?.awaiting?.payment?.orderId;
+    if (!order) return;
+    checkPayment(saved.awaiting.ref, order).then((b) => {
+      const restore = () => setForm((f) => ({ ...f, name: saved.name || f.name, email: saved.email || f.email, suite: saved.suite || f.suite }));
+      if (b?.paymentStatus === "paid") {
+        restore();
+        setDone(b);
+      } else if (b && new Date(saved.awaiting.payment.holdUntil) > new Date()) {
+        restore();
+        setAwaiting(saved.awaiting);
+      } else {
+        try {
+          sessionStorage.removeItem(PAYING_KEY);
+        } catch {}
+      }
+    });
+  }, []);
 
   // Choosing a location brings the guests down to the most its suites take
   useEffect(() => {
@@ -269,6 +335,7 @@ export default function BookingForm() {
     const result = await payWithRazorpay(booking.payment, {
       description: `${fullName(booking.suiteName)} · ${plural(booking.nights, "night")} · ${booking.ref}`,
       onFailedAttempt: (why) => setPayError(why ? `Payment didn't go through: ${why}` : "Payment didn't go through."),
+      onOpen: (close) => (closeCheckout.current = close),
     });
     if (!result.paid) {
       setPaying(false);

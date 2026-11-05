@@ -22,7 +22,7 @@ function loadCheckout() {
  *   { paid: true, response }   — Razorpay's success reply, to be verified by the API
  *   { paid: false, reason }     — closed by the guest ("dismissed"), failed, or Checkout didn't load
  */
-export async function payWithRazorpay(payment, { description, onFailedAttempt } = {}) {
+export async function payWithRazorpay(payment, { description, onFailedAttempt, onOpen } = {}) {
   if (!(await loadCheckout())) return { paid: false, reason: "unavailable" };
   return new Promise((resolve) => {
     const rzp = new window.Razorpay({
@@ -41,5 +41,7 @@ export async function payWithRazorpay(payment, { description, onFailedAttempt } 
     // A declined card etc. — Checkout stays open so the guest can try another way
     rzp.on("payment.failed", (r) => onFailedAttempt?.(r.error?.description));
     rzp.open();
+    // Lets the page close Checkout itself — e.g. once the API finds the booking already paid
+    onOpen?.(() => rzp.close());
   });
 }
