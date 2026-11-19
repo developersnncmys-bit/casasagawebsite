@@ -9,7 +9,7 @@ import { checkPayment, getSource, sendToBackend, useTakenSuites } from "./backen
 import PinIcon from "./PinIcon";
 import { payWithRazorpay } from "./razorpay";
 import DateInput from "./DateInput";
-import { checkEmail, checkName, checkPhone, checkText, collect } from "./validate";
+import { checkEmail, checkName, checkPhone, collect } from "./validate";
 
 // Longest stay the website books (longer ones by phone)
 const MAX_NIGHTS = 30;
@@ -27,7 +27,6 @@ const FIELD_CHECK = {
   name: (v) => checkName(v, "name"),
   phone: (v) => checkPhone(v),
   email: (v) => checkEmail(v, { required: true }) && "Please enter a valid email — we'll send your booking confirmation there.",
-  notes: (v) => checkText(v, { max: 500, label: "special requests" }),
 };
 
 // Dates as YYYY-MM-DD in the visitor's own time (India), not UTC
@@ -67,7 +66,6 @@ export default function BookingForm() {
     phone: "",
     email: "",
     occasion: startAddon ? startAddon.occasion : occasions[0],
-    notes: "",
   });
   // Coming from the home-page date bar, the dates are already chosen — open on the suite step
   const datesGiven = nightsBetween(form.in, form.out) > 0;
@@ -247,7 +245,6 @@ export default function BookingForm() {
         phone: FIELD_CHECK.phone(form.phone),
         // Required: the booking confirmation is emailed
         email: FIELD_CHECK.email(form.email),
-        notes: FIELD_CHECK.notes(form.notes),
       });
     }
     setErrors(err);
@@ -301,7 +298,6 @@ export default function BookingForm() {
       phone: form.phone,
       email: form.email,
       occasion: extras ? form.occasion : "",
-      notes: extras ? form.notes : "",
       // Instagram, Facebook, Google… — shown as the booking's source in the admin panel
       source: getSource(),
     });
@@ -657,13 +653,6 @@ export default function BookingForm() {
           </label>
         )}
       </div>
-      {extras && (
-        <label className={`field ${errors.notes ? "has-error" : ""}`}>
-          <span>Special requests</span>
-          <textarea rows={4} value={form.notes} onChange={set("notes")} placeholder="Decoration theme or colours, cake message, arrival time…" maxLength={500} />
-          {err("notes")}
-        </label>
-      )}
       {submitError && <p className="avail-note warn" role="alert">{submitError}</p>}
       <p className="muted form-note policy-agree">
         By confirming, you agree to our{" "}
