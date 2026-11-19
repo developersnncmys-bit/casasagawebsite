@@ -38,9 +38,9 @@ export default function BookingBar() {
         next.suite = first.id;
         next.guests = String(guestRules(first).max);
       } else {
-        // Fill in the most guests the location's suites take; the guest can lower it
+        // Start at 2 guests (or fewer if the location's suites take fewer); the guest can raise it
         next.suite = "";
-        next.guests = String(next.location === "all" ? Math.min(Number(next.guests), maxGuests("all")) : maxGuests(next.location));
+        next.guests = String(next.location === "all" ? Math.min(Number(next.guests), maxGuests("all")) : Math.min(2, maxGuests(next.location)));
       }
     }
     if (k === "suite") next.guests = String(guestRules(suites.find((s) => s.id === next.suite)).max);
