@@ -10,9 +10,6 @@ import PinIcon from "./PinIcon";
 import { payWithRazorpay } from "./razorpay";
 import DateInput from "./DateInput";
 import { checkEmail, checkName, checkPhone, collect } from "./validate";
-
-// Longest stay the website books (longer ones by phone)
-const MAX_NIGHTS = 30;
 // The booking being paid for in this visit (sessionStorage), picked up again after a reload
 const PAYING_KEY = "cs_paying";
 
@@ -237,7 +234,6 @@ export default function BookingForm() {
       else if (form.in < today()) err.in = "Check-in can't be in the past.";
       if (!form.out) err.out = "Choose a check-out date.";
       else if (form.in && nights < 1) err.out = "Check-out must be after check-in.";
-      else if (nights > MAX_NIGHTS) err.out = `Online bookings are up to ${MAX_NIGHTS} nights — call us for longer stays.`;
     }
     if (i === 3) {
       err = collect({
